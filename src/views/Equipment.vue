@@ -1,0 +1,18 @@
+<template>
+  <div class="space-y-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">{{ $t('nav.equipment') }}</h1>
+      <p class="text-gray-600 mt-1">管理实验室设备和资源</p>
+    </div>
+
+    <div class="text-center py-20">
+      <Monitor class="w-20 h-20 text-gray-400 mx-auto mb-4" />
+      <h3 class="text-lg font-medium text-gray-900 mb-2">设备管理功能</h3>
+      <p class="text-gray-500">该功能正在开发中，敬请期待...</p>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { Monitor } from 'lucide-vue-next'
+</script>

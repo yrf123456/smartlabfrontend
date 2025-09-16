@@ -1,0 +1,335 @@
+你是一名资深前端工程师，请用 Vue 3 + Vite + TypeScript + Pinia + Vue Router 搭建一个「简约风格的智能实验室管理系统前端」。遵循以下视觉规范、信息架构、组件设计、数据结构与 API 契约、交互逻辑、无障碍与移动端等要求产出可运行项目。请输出完整源码结构（包含主要页面与核心组件），并在 README 中写明启动步骤与技术栈说明。
+
+0. 设计目标（简约风格）
+
+整体风格：极简、留白、卡片式、清晰层级。浅色主题为主，配色：
+
+背景：#F7F8FA
+
+卡片/内容区：白色
+
+文本：深灰 #1F2937 / 次级 #6B7280
+
+品牌主色（强调与交互）：#3B82F6（或可在 src/theme.ts 可配置）
+
+成功/警告/错误：使用系统默认色阶（green/amber/rose）
+
+字体与排版：系统字体优先，标题-正文-辅助三级层级；行高舒适（1.5+）；组件圆角 rounded-2xl 风格、柔和阴影。
+
+图标：使用 Lucide（或等价）矢量图标，线性风格。
+
+动效：轻微，进入/悬停/加载骨架，避免复杂动画。
+
+响应式：移动优先，≥ 320px；平板断点 ~768px；桌面 ≥ 1200px。
+
+图片与头像：一律使用后端返回的图片 URL 显示（包括管理员头像、实验室图片）；上传时提交文件给后端，保存成功后页面使用后端返回的 URL（不要用本地 base64 持久化）。
+
+1. 布局与导航
+
+顶部：品牌区（Logo/系统名“Smart Lab”）、全局搜索、消息/通知、用户头像菜单（个人资料、退出登录）。
+
+左侧侧栏（桌面端固定，移动端为汉堡菜单抽屉）：
+
+菜单项（示例顺序）：总览 Dashboard、实验室 Labs、预约/日程 Bookings、设备 Equipment、环境监测 Environment、门禁 Access、成员与角色 Users/Roles、报表 Reports、系统设置 Settings。
+
+移动端隐藏管理员邮箱图标，并把该入口整合进汉堡菜单中的“帮助与支持/联系管理员”。
+
+内容区：卡片式布局，支持栅格排列与表格+筛选组合。
+
+面包屑：二级页面（如实验室详情）显示。
+
+2. 路由结构
+/
+├─ /login
+├─ /dashboard
+├─ /labs
+│   ├─ /labs/:labId        // 实验室详情
+│   └─ /labs/:labId/edit   // 编辑（仅管理员/部门管理员）
+├─ /bookings               // 预约与日程视图（按周/月/列表）
+├─ /equipment              // 设备清单、分配、状态
+├─ /environment            // 环境监测（温湿度/PM2.5/噪声等曲线与阈值告警）
+├─ /access                 // 门禁授权、进出记录
+├─ /users                  // 用户与角色、权限分配
+├─ /reports                // 统计报表导出（CSV/Excel）
+└─ /settings               // 全局配置：主题、上传策略、图片域名白名单等
+
+
+路由守卫：未登录跳转 /login；基于角色控制页面与按钮可见性。
+
+3. 角色与权限（最小可用）
+
+角色：SYS_ADMIN、DEPT_ADMIN、TEACHER、STUDENT、VISITOR
+
+权限示例：
+
+SYS_ADMIN：全量读写、系统设置
+
+DEPT_ADMIN：部门范围内实验室/设备/成员管理
+
+TEACHER：发起预约、审批学生预约、查看数据
+
+STUDENT：创建预约、查看可用实验室与设备
+
+VISITOR：只读公共信息
+
+前端通过 Pinia 存储 user.roles 与 user.permissions，组件按钮使用指令或函数 can('PERM_CODE') 控制显隐/禁用。
+
+4. 核心页面与组件（概要）
+4.1 Dashboard（总览）
+
+顶部统计卡 StatCard（可复用）：今日预约数、设备可用率、告警数量、本周实验室使用率。
+
+快捷入口：创建预约、发布公告、查看审批。
+
+环境总览小图：各实验室最近 24h 温湿度火花线（mini chart）。
+
+最近动态：预约/审批/门禁/设备状态变更的时间线。
+
+4.2 Labs（实验室列表）
+
+列表 + 卡片切换视图（搜索、标签筛选、状态筛选“可预约/维护中/已满”）
+
+LabCard 要素：实验室名称、封面图（URL）、容量、设备数量、开放时段、当前状态、快捷“预约”按钮。
+
+支持批量操作（仅管理员）：标签、状态、导出清单。
+
+4.3 Lab Detail（实验室详情）
+
+顶部：封面图（URL）、基本信息（名称、位置、容量、负责人与头像 URL）、标签。
+
+Tab：
+
+Overview：简介、使用须知、设备概览（Top N）、开放时段。
+
+Schedule：日/周日程（可与 Bookings 复用组件）。
+
+Environment：温湿度/PM2.5/噪声等图表，阈值线，超限标注。
+
+Equipment：该实验室设备表格（状态、领用人、维保时间）。
+
+Access：门禁规则与最近进出记录（隐私与权限控制）。
+
+右侧抽屉：发起预约表单。
+
+4.4 Bookings（预约与审批）
+
+视图切换：日历（周/月）/ 列表。
+
+创建预约表单：实验室、时间段、用途、参与人数、备注、可选设备。
+
+审批流（管理员/教师）：待办列表、通过/拒绝、批注。
+
+冲突检测：创建或编辑时浮层提示冲突与建议时间段。
+
+4.5 Equipment（设备）
+
+筛选：按实验室、类型、状态（可用/借用中/维修）。
+
+表格列：名称、编号、位置、状态、领用人、维保到期、操作（分配、归还、报修）。
+
+设备详情侧抽屉：二维码、操作历史、报修记录。
+
+4.6 Environment（环境监测）
+
+实时/历史切换，折线图（温度/湿度/PM2.5/噪声）。
+
+阈值配置（管理员），超限告警列表与确认操作。
+
+多实验室对比选择器（最多 3 个）。
+
+4.7 Access（门禁）
+
+授权策略：按角色/用户、时间段、实验室。
+
+近 7 天出入记录表（支持导出）。
+
+异常行为标记与备注。
+
+4.8 Users / Roles（成员与角色）
+
+成员列表：头像 URL、姓名、邮箱、角色、所属部门、状态。
+
+角色管理：角色-权限矩阵，勾选保存。
+
+4.9 Reports（报表）
+
+预约统计、设备使用、环境超限、出入统计，支持 CSV/Excel 导出。
+
+选择维度、时间范围、分组方式。
+
+4.10 Settings（系统设置）
+
+主题色、深浅色切换（可选）。
+
+图片/头像使用 URL 的策略：上传后端返回 URL、图片域名白名单。
+
+SMTP/通知渠道配置（前端表单占位）。
+
+关于与版本信息。
+
+5. 组件清单（命名与 Props 草案）
+
+AppLayout：基础布局（含顶部与侧栏，移动端汉堡）
+
+SidebarNav：侧栏；移动端隐藏管理员邮箱图标并移入汉堡菜单项
+
+Topbar：搜索、通知、用户菜单
+
+StatCard：{ title: string; value: string|number; trend?: number; hint?: string }
+
+LabCard：{ id, name, coverUrl, capacity, devicesCount, tags:string[], status }
+
+DataTable：通用表格，支持列定义、分页、选择、批量操作
+
+FilterBar：通用筛选区（关键字、标签、状态）
+
+ScheduleCalendar：周/月视图；{ events: BookingEvent[] }
+
+ChartLine：简单折线图（使用轻量库，如 Chart.js/ECharts 任一，懒加载）
+
+Drawer / Modal：通用弹层
+
+EmptyState、ErrorState、SkeletonList
+
+6. 状态管理（Pinia）
+
+useAuthStore：user {id,name,avatarUrl,email,roles,permissions,token}
+
+useUiStore：主题、侧栏开合、全局 loading、通知
+
+useLabStore：实验室列表、标签、筛选
+
+useBookingStore：预约数据、当前视图、创建与审批
+
+useEquipmentStore、useEnvStore、useAccessStore、useUserStore
+
+所有异步请求包含 loading/error/empty 三态与重试动作。
+
+7. 数据模型与 API 契约（示例）
+
+仅定义前端所需字段，真实接口以 .env 的 VITE_API_BASE 为前缀；提供一个 api/ 目录，封装 axios，并含 mock 开关。
+
+7.1 实验室
+type Lab = {
+  id: string;
+  name: string;
+  coverUrl: string;     // 后端返回的图片 URL
+  location: string;
+  capacity: number;
+  tags: string[];
+  status: 'available' | 'maintenance' | 'full';
+  managers: Array<{ id:string; name:string; avatarUrl:string; email:string }>;
+  openHours: string;    // e.g., "Mon–Fri 08:30–18:00"
+  desc?: string;
+};
+GET /labs?keyword=&tags=&status=
+GET /labs/:id
+POST /labs            // 仅管理员
+PUT  /labs/:id
+
+7.2 预约
+type BookingEvent = {
+  id:string; labId:string; title:string;
+  start:string; end:string;    // ISO8601
+  requester:{ id:string; name:string; avatarUrl:string };
+  status:'pending'|'approved'|'rejected';
+  participants:number;
+  note?:string;
+};
+GET /bookings?from=&to=&labId=
+POST /bookings
+PUT  /bookings/:id/approve
+PUT  /bookings/:id/reject
+
+7.3 设备
+type Equipment = {
+  id:string; name:string; code:string; type:string;
+  labId:string; status:'available'|'borrowed'|'repair';
+  holder?:{ id:string; name:string };
+  maintainDue:string; // ISO date
+};
+GET /equipment?labId=&status=
+
+7.4 环境
+type EnvPoint = { ts:string; temp:number; hum:number; pm25:number; noise:number };
+GET /env/:labId/series?from=&to=
+GET /env/thresholds
+PUT /env/thresholds       // 管理员
+
+7.5 门禁
+type AccessLog = { id:string; userId:string; labId:string; ts:string; action:'in'|'out' };
+GET /access/logs?labId=&from=&to=
+GET /access/policies
+PUT /access/policies      // 管理员
+
+7.6 用户与角色
+type User = { id:string; name:string; email:string; avatarUrl:string; roles:string[]; status:'active'|'disabled' };
+GET /users?keyword=
+GET /roles
+PUT /roles/:roleId/permissions
+
+7.7 认证
+POST /auth/login { email,password }
+GET  /auth/me
+POST /auth/logout
+
+8. 上传与图片 URL 策略
+
+头像与实验室封面上传：POST /upload 返回 { url }；前端拿到 url 后立即用于展示并写回实体字段（今后仅用 URL 渲染）。
+
+设置页面提供 图片域名白名单 配置项（仅展示/校验，不做真实存储）。
+
+9. 交互细节与边界
+
+空态：提供“去创建/去筛选/清除条件”建议与快捷按钮。
+
+错误态：重试按钮、错误提示组件。
+
+加载态：骨架屏 + 轻微渐入。
+
+表单校验：基础必填、时间冲突检测、人数 ≤ 容量。
+
+日历拖拽：支持拖拽调整预约时段（需权限）。
+
+导出：报表导出 CSV/Excel，后台流或前端生成均可（留接口）。
+
+国际化（i18n）：中文为默认，保留英文 key；所有文案走字典文件。
+
+可访问性：语义化标签、可聚焦、键盘操作、按钮 aria-label、对比度达标。
+
+性能：路由按需加载、图表与重型组件懒加载、长表虚拟滚动。
+
+10. 示例字典键（片段）
+i18n = {
+  common: { search:'搜索', create:'创建', save:'保存', cancel:'取消' },
+  lab: { title:'实验室', capacity:'容量', managers:'负责人', available:'可预约', maintenance:'维护中', full:'已满' },
+  booking: { title:'预约', new:'新建预约', approve:'通过', reject:'拒绝', conflict:'时间冲突' },
+  env: { title:'环境监测', temp:'温度', hum:'湿度', pm25:'PM2.5', noise:'噪声', threshold:'阈值' },
+  access: { title:'门禁', logs:'出入记录', policy:'授权策略' }
+}
+
+11. Mock 数据（最小示例）
+
+提供 3 个实验室（不同图片 URL、容量、标签），若无真实后端，使用本地 mock（可 msw 或简易 mock 服务）。
+
+近期 10 条预约，3 台设备示例，环境曲线最近 24h 每 10 分钟点位。
+
+12. 交付要求
+
+产出完整项目结构与关键页面/组件实现；可运行的路由、Pinia、基础 API 封装、Mock。
+
+在 README.md 写清：
+
+安装与启动：pnpm i && pnpm dev
+
+项目结构说明、主题定制方法、环境变量（VITE_API_BASE、VITE_USE_MOCK）。
+
+提供 3～5 张关键界面截图（或说明如何在本地预览）。
+
+特别注意
+
+所有头像与封面显示均使用 后端返回的 URL。
+
+移动端隐藏顶栏的管理员邮箱图标，并将其功能入口放入汉堡菜单。
+
+交互与样式保持极简、干净、可读；表格与卡片统一留白、统一圆角与阴影。
