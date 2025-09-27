@@ -3,7 +3,7 @@
     <!-- Page header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">{{ $t('nav.dashboard') }}</h1>
-      <p class="text-gray-600 mt-1">欢迎回来，{{ authStore.user?.name }}</p>
+      <p class="text-gray-600 mt-1">Welcome back, {{ authStore.user?.name }}</p>
     </div>
 
     <!-- Stats cards -->
@@ -17,7 +17,7 @@
 
     <!-- Quick actions -->
     <div class="bg-white rounded-2xl p-6 border border-gray-200">
-      <h2 class="text-lg font-semibold text-gray-900 mb-4">快捷操作</h2>
+      <h2 class="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <button
           v-for="action in quickActions"
@@ -41,14 +41,14 @@
       <!-- Environment overview -->
       <div class="xl:col-span-2 bg-white rounded-2xl p-6 border border-gray-200">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-lg font-semibold text-gray-900">环境概览</h2>
+          <h2 class="text-lg font-semibold text-gray-900">Environment Overview</h2>
           <select 
             v-model="selectedTimeRange"
             class="text-sm border border-gray-300 rounded-lg px-3 py-1.5"
           >
-            <option value="24h">最近24小时</option>
-            <option value="7d">最近7天</option>
-            <option value="30d">最近30天</option>
+            <option value="24h">Last 24 Hours</option>
+            <option value="7d">Last 7 Days</option>
+            <option value="30d">Last 30 Days</option>
           </select>
         </div>
         
@@ -69,11 +69,11 @@
             </div>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div class="text-center">
-                <p class="text-xs text-gray-500">温度</p>
+                <p class="text-xs text-gray-500">Temperature</p>
                 <p class="text-sm font-semibold text-gray-900">{{ lab.env.temp }}°C</p>
               </div>
               <div class="text-center">
-                <p class="text-xs text-gray-500">湿度</p>
+                <p class="text-xs text-gray-500">Humidity</p>
                 <p class="text-sm font-semibold text-gray-900">{{ lab.env.hum }}%</p>
               </div>
               <div class="text-center">
@@ -81,7 +81,7 @@
                 <p class="text-sm font-semibold text-gray-900">{{ lab.env.pm25 }}μg/m³</p>
               </div>
               <div class="text-center">
-                <p class="text-xs text-gray-500">噪声</p>
+                <p class="text-xs text-gray-500">Noise</p>
                 <p class="text-sm font-semibold text-gray-900">{{ lab.env.noise }}dB</p>
               </div>
             </div>
@@ -91,7 +91,7 @@
 
       <!-- Recent activity -->
       <div class="bg-white rounded-2xl p-6 border border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900 mb-6">最近动态</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-6">Recent Activity</h2>
         <div class="space-y-4">
           <div
             v-for="activity in recentActivities"
@@ -110,7 +110,7 @@
         </div>
         
         <button class="w-full mt-4 py-2 text-sm text-primary-600 hover:text-primary-700 font-medium">
-          查看全部活动
+          View All Activities
         </button>
       </div>
     </div>
@@ -121,18 +121,18 @@
       class="bg-white rounded-2xl p-6 border border-gray-200"
     >
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-900">待审批事项</h2>
+        <h2 class="text-lg font-semibold text-gray-900">Pending Approvals</h2>
         <router-link 
           to="/bookings"
           class="text-sm text-primary-600 hover:text-primary-700 font-medium"
         >
-          查看全部
+          View All
         </router-link>
       </div>
       
       <div v-if="pendingApprovals.length === 0" class="text-center py-8">
         <CheckCircle class="w-12 h-12 text-green-500 mx-auto mb-3" />
-        <p class="text-gray-500">暂无待审批事项</p>
+        <p class="text-gray-500">No pending approvals</p>
       </div>
       
       <div v-else class="space-y-3">
@@ -156,10 +156,10 @@
           </div>
           <div class="flex items-center space-x-2">
             <button class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200">
-              通过
+              Approve
             </button>
             <button class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200">
-              拒绝
+              Reject
             </button>
           </div>
         </div>
@@ -190,51 +190,51 @@ const selectedTimeRange = ref('24h')
 
 const stats = ref([
   {
-    title: '今日预约',
+    title: 'Today\'s Bookings',
     value: 12,
     trend: 8,
-    hint: '较昨日',
+    hint: 'vs yesterday',
     icon: 'Calendar'
   },
   {
-    title: '设备可用率',
+    title: 'Equipment Availability',
     value: '92%',
     trend: 2,
-    hint: '较上周',
+    hint: 'vs last week',
     icon: 'Monitor'
   },
   {
-    title: '告警数量',
+    title: 'Alert Count',
     value: 3,
     trend: -5,
-    hint: '较昨日',
+    hint: 'vs yesterday',
     icon: 'AlertTriangle'
   },
   {
-    title: '本周使用率',
+    title: 'Weekly Usage',
     value: '78%',
     trend: 12,
-    hint: '较上周',
+    hint: 'vs last week',
     icon: 'TrendingUp'
   }
 ])
 
 const quickActions = [
   {
-    title: '创建预约',
-    description: '预约实验室使用',
+    title: 'Create Booking',
+    description: 'Book laboratory usage',
     icon: Calendar,
     onClick: () => router.push('/bookings')
   },
   {
-    title: '发布公告',
-    description: '发布系统公告',
+    title: 'Post Announcement',
+    description: 'Publish system announcement',
     icon: FileText,
-    onClick: () => console.log('发布公告')
+    onClick: () => console.log('Post announcement')
   },
   {
-    title: '查看审批',
-    description: '处理待审批事项',
+    title: 'View Approvals',
+    description: 'Handle pending approvals',
     icon: MessageSquare,
     onClick: () => router.push('/bookings')
   }
@@ -243,7 +243,7 @@ const quickActions = [
 const labsWithEnv = ref([
   {
     id: '1',
-    name: '人工智能实验室',
+    name: 'AI Laboratory',
     status: 'normal',
     env: {
       temp: 23.5,
@@ -254,7 +254,7 @@ const labsWithEnv = ref([
   },
   {
     id: '2',
-    name: '物联网实验室',
+    name: 'IoT Laboratory',
     status: 'warning',
     env: {
       temp: 26.8,
@@ -265,7 +265,7 @@ const labsWithEnv = ref([
   },
   {
     id: '3',
-    name: '云计算实验室',
+    name: 'Cloud Computing Laboratory',
     status: 'maintenance',
     env: {
       temp: 22.1,
@@ -279,30 +279,30 @@ const labsWithEnv = ref([
 const recentActivities = ref([
   {
     id: '1',
-    title: '新的预约申请',
-    description: '张三申请预约人工智能实验室',
-    time: '2小时前',
+    title: 'New Booking Request',
+    description: 'John Smith requested AI Laboratory booking',
+    time: '2 hours ago',
     icon: TestTube
   },
   {
     id: '2',
-    title: '设备状态更新',
-    description: 'NVIDIA RTX 4090 维护完成',
-    time: '4小时前',
+    title: 'Equipment Status Update',
+    description: 'NVIDIA RTX 4090 maintenance completed',
+    time: '4 hours ago',
     icon: CheckCircle
   },
   {
     id: '3',
-    title: '门禁记录',
-    description: '李四进入物联网实验室',
-    time: '6小时前',
+    title: 'Access Log',
+    description: 'Jane Doe entered IoT Laboratory',
+    time: '6 hours ago',
     icon: Key
   },
   {
     id: '4',
-    title: '预约审批',
-    description: '王五的预约申请已通过',
-    time: '8小时前',
+    title: 'Booking Approval',
+    description: 'Mike Johnson\'s booking request approved',
+    time: '8 hours ago',
     icon: Clock
   }
 ])
@@ -310,21 +310,21 @@ const recentActivities = ref([
 const pendingApprovals = ref([
   {
     id: '1',
-    title: '人工智能实验室使用申请',
+    title: 'AI Laboratory Usage Request',
     requester: {
-      name: '张三',
+      name: 'John Smith',
       avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face'
     },
-    time: '2小时前'
+    time: '2 hours ago'
   },
   {
     id: '2',
-    title: '云计算实验室维护申请',
+    title: 'Cloud Computing Lab Maintenance Request',
     requester: {
-      name: '李四',
+      name: 'Jane Doe',
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face'
     },
-    time: '4小时前'
+    time: '4 hours ago'
   }
 ])
 
@@ -344,13 +344,13 @@ const getStatusClass = (status: string) => {
 const getStatusText = (status: string) => {
   switch (status) {
     case 'normal':
-      return '正常'
+      return 'Normal'
     case 'warning':
-      return '警告'
+      return 'Warning'
     case 'maintenance':
-      return '维护'
+      return 'Maintenance'
     default:
-      return '未知'
+      return 'Unknown'
   }
 }
 

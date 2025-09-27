@@ -288,6 +288,14 @@ const handleSubmit = async () => {
     loading.value = true
     error.value = ''
 
+    console.log('DEBUG: authStore object:', authStore)
+    console.log('DEBUG: authStore.register exists?', typeof authStore.register)
+    
+    if (typeof authStore.register !== 'function') {
+      console.error('authStore.register is not a function!')
+      return
+    }
+
     console.log('📝 Attempting registration...')
     const result = await authStore.register({
       name: form.name.trim(),

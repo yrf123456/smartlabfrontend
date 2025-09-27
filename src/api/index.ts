@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { ApiResponse, User, Lab, BookingEvent, Equipment, EnvPoint, AccessLog } from '@/types'
+import type { ApiResponse, User, Lab, BookingEvent, Equipment, EnvPoint, AccessLog, RegisterRequest, RegisterResponse } from '@/types'
 import { mockApi } from './mock'
 
 const baseURL = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api'
@@ -9,6 +9,15 @@ const request = axios.create({
   baseURL,
   timeout: 10000
 })
+
+// Custom error interface with response property
+interface CustomError extends Error {
+  response?: {
+    data?: {
+      message?: string
+    }
+  }
+}
 
 // Request interceptor
 request.interceptors.request.use(
@@ -24,10 +33,31 @@ request.interceptors.request.use(
   }
 )
 
-// Response interceptor
+// Response interceptor  
 request.interceptors.response.use(
   (response) => {
-    return response.data
+    // Handle backend R<T> response format
+    const data = response.data
+    
+    // If backend returns R<T> format with code field
+    if (data && typeof data.code !== 'undefined') {
+      if (data.code === 0) {
+        // Success case - return in ApiResponse format
+        return {
+          code: 0,
+          data: data.data,
+          message: data.msg || 'Success'
+        }
+      } else {
+        // Error case - throw error with backend message
+        const error = new Error(data.msg || 'Request failed') as CustomError
+        error.response = { data: { message: data.msg } }
+        throw error
+      }
+    }
+    
+    // Fallback to original data
+    return data
   },
   (error) => {
     if (error.response?.status === 401) {
@@ -44,6 +74,11 @@ export const authApi = {
   login: (data: { email: string; password: string }): Promise<ApiResponse<{ user: User; token: string }>> => {
     if (useMock) return mockApi.auth.login(data)
     return request.post('/auth/login', data)
+  },
+  
+  register: (data: RegisterRequest): Promise<ApiResponse<RegisterResponse>> => {
+    if (useMock) return mockApi.auth.register(data)
+    return request.post('/auth/register', data)
   },
   
   getProfile: (): Promise<ApiResponse<User>> => {
