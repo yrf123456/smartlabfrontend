@@ -184,11 +184,11 @@
             Unavailable
           </button>
           
-          <button 
-            class="w-full bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
-            @click="viewDetails(equipment.id)"
+          <button
+            class="w-full bg-red-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+            @click="onDelete(equipment.id)"
           >
-            View Details
+            Delete
           </button>
         </div>
       </div>
@@ -614,8 +614,28 @@ const completeMaintenaceStatus = (id: string) => {
   }
 }
 
-const viewDetails = (id: string) => {
-  console.log('View details for equipment:', id)
+const onDelete = (id: string) => {
+  const idx = equipment.value.findIndex(e => e.id === id)
+  if (idx === -1) return
+
+  const item = equipment.value[idx]
+  const ok = window.confirm(`Confirm deletion of the device ${item?.name ? `「${item.name}」` : ''}（ID: ${id}）? This operation cannot be undone.`)
+  if (!ok) return
+
+  equipment.value.splice(idx, 1)
+
+  equipmentStats.value.total--
+  switch (item?.status) {
+    case 'available':
+      equipmentStats.value.available--
+      break
+    case 'maintenance':
+      equipmentStats.value.maintenance--
+      break
+    default:
+      equipmentStats.value.inUse--
+      break
+  }
 }
 
 const addEquipment = () => {
