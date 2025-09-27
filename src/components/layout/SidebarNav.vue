@@ -82,7 +82,7 @@ import {
   Calendar, 
   Monitor, 
   Thermometer, 
-  KeyRound, 
+  FolderKanban, 
   Users, 
   FileBarChart, 
   Settings,
@@ -134,10 +134,10 @@ const menuItems = [
     roles: []
   },
   {
-    name: 'access',
-    path: '/access',
-    title: 'nav.access',
-    icon: KeyRound,
+    name: 'projects',
+    path: '/projects',
+    title: 'nav.projects',
+    icon: FolderKanban,
     roles: []
   },
   {
@@ -145,7 +145,7 @@ const menuItems = [
     path: '/users',
     title: 'nav.users',
     icon: Users,
-    roles: [UserRole.SYSTEM_ADMIN, UserRole.DEPARTMENT_ADMIN] // 使用英文枚举
+    roles: [UserRole.SYSTEM_ADMIN, UserRole.DEPARTMENT_ADMIN]
   },
   {
     name: 'reports',
@@ -159,18 +159,17 @@ const menuItems = [
     path: '/settings',
     title: 'nav.settings',
     icon: Settings,
-    roles: [UserRole.SYSTEM_ADMIN] // 使用英文枚举
+    roles: [UserRole.SYSTEM_ADMIN]
   }
 ]
 
-// 响应式计算可见菜单项
 const visibleMenuItems = computed(() => {
   if (!authStore.user) {
-    console.log('🔄 No user found, showing no menu items')
+    console.log('📄 No user found, showing no menu items')
     return []
   }
   
-  console.log('🔄 Recalculating visible menu items for user:', authStore.user.name)
+  console.log('📄 Recalculating visible menu items for user:', authStore.user.name)
   console.log('👤 User roles:', authStore.user.roles)
   
   return menuItems.filter(item => {
@@ -182,12 +181,10 @@ const visibleMenuItems = computed(() => {
   })
 })
 
-// 检查路由是否激活
 const isActiveRoute = (path: string) => {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
-// 获取角色显示样式 - 更新为英文角色
 const getRoleClass = (role: UserRole | string) => {
   const roleStr = role.toString()
   switch (roleStr) {
@@ -205,7 +202,6 @@ const getRoleClass = (role: UserRole | string) => {
       return 'bg-gray-100 text-gray-800'
   }
 }
-
 
 const getRoleText = (role: UserRole | string) => {
   const roleStr = role.toString()
@@ -225,9 +221,6 @@ const getRoleText = (role: UserRole | string) => {
   }
 }
 
-
-
-// 联系管理员
 const handleContactAdmin = () => {
   uiStore.addNotification({
     type: 'info',
@@ -236,20 +229,18 @@ const handleContactAdmin = () => {
   })
 }
 
-// 监听用户变化，强制重新计算菜单
 watch(
   () => authStore.user,
   (newUser, oldUser) => {
     if (newUser && newUser !== oldUser) {
       console.log('👤 User updated in sidebar:', newUser.name)
       console.log('👥 User roles:', newUser.roles)
-      console.log('🔄 Menu items will be recalculated')
+      console.log('📄 Menu items will be recalculated')
     }
   },
   { immediate: true, deep: true }
 )
 
-// 监听认证状态变化
 watch(
   () => authStore.isAuthenticated,
   (isAuth, wasAuth) => {
@@ -257,13 +248,12 @@ watch(
     if (isAuth && !wasAuth) {
       console.log('✅ User authenticated, menu will be visible')
     } else if (!isAuth && wasAuth) {
-      console.log('❌ User unauthenticated, menu will be hidden')
+      console.log('⛔ User unauthenticated, menu will be hidden')
     }
   },
   { immediate: true }
 )
 
-// 监听路由变化
 watch(
   () => route.path,
   (newPath, oldPath) => {
@@ -278,11 +268,9 @@ onMounted(() => {
   console.log('📋 Initial menu items count:', visibleMenuItems.value.length)
 })
 
-// 开发环境调试信息
 if (import.meta.env.DEV) {
-  // 全局调试函数
   ;(window as any).debugSidebar = () => {
-    console.log('🐛 Sidebar Debug Info:')
+    console.log('🛠 Sidebar Debug Info:')
     console.log('  - User:', authStore.user)
     console.log('  - Authenticated:', authStore.isAuthenticated)
     console.log('  - Visible menu items:', visibleMenuItems.value.length)
@@ -297,7 +285,6 @@ if (import.meta.env.DEV) {
 </script>
 
 <style scoped>
-/* 自定义滚动条样式 */
 .overflow-y-auto::-webkit-scrollbar {
   width: 4px;
 }
@@ -315,18 +302,15 @@ if (import.meta.env.DEV) {
   background: #d1d5db;
 }
 
-/* 导航项悬停动画 */
 .router-link-active,
 .router-link-exact-active {
   transition: all 0.2s ease;
 }
 
-/* 角色标签动画 */
 .role-badge {
   transition: all 0.2s ease;
 }
 
-/* 头像加载动画 */
 img {
   transition: opacity 0.2s ease;
 }

@@ -1,11 +1,9 @@
-import type { User, Lab, BookingEvent, Equipment, EnvPoint, AccessLog, ApiResponse, RegisterRequest, RegisterResponse } from '@/types'
+import type { User, Lab, BookingEvent, Equipment, EnvPoint, ApiResponse, RegisterRequest, RegisterResponse, Project, ProjectFilters, CreateProjectRequest, UpdateProjectRequest, ProjectApprovalRequest } from '@/types'
 import { UserRole, Permission } from '@/types'
 import dayjs from 'dayjs'
 
-// Mock delay
 const delay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms))
 
-// Mock users for different roles - using English roles
 const mockUsers: Record<string, User> = {
   'admin@example.com': {
     id: '1',
@@ -29,8 +27,11 @@ const mockUsers: Record<string, User> = {
       Permission.EQUIPMENT_VIEW,
       Permission.ENVIRONMENT_CONFIG,
       Permission.ENVIRONMENT_VIEW,
-      Permission.ACCESS_MANAGE,
-      Permission.ACCESS_VIEW,
+      Permission.PROJECT_CREATE,
+      Permission.PROJECT_EDIT,
+      Permission.PROJECT_DELETE,
+      Permission.PROJECT_APPROVE,
+      Permission.PROJECT_VIEW,
       Permission.REPORT_VIEW,
       Permission.REPORT_EXPORT
     ],
@@ -51,8 +52,10 @@ const mockUsers: Record<string, User> = {
       Permission.EQUIPMENT_MANAGE,
       Permission.EQUIPMENT_VIEW,
       Permission.ENVIRONMENT_VIEW,
-      Permission.ACCESS_MANAGE,
-      Permission.ACCESS_VIEW,
+      Permission.PROJECT_CREATE,
+      Permission.PROJECT_EDIT,
+      Permission.PROJECT_APPROVE,
+      Permission.PROJECT_VIEW,
       Permission.REPORT_VIEW
     ],
     status: 'active'
@@ -70,7 +73,9 @@ const mockUsers: Record<string, User> = {
       Permission.BOOKING_VIEW,
       Permission.EQUIPMENT_VIEW,
       Permission.ENVIRONMENT_VIEW,
-      Permission.ACCESS_VIEW
+      Permission.PROJECT_CREATE,
+      Permission.PROJECT_EDIT,
+      Permission.PROJECT_VIEW
     ],
     status: 'active'
   },
@@ -85,7 +90,9 @@ const mockUsers: Record<string, User> = {
       Permission.BOOKING_CREATE,
       Permission.BOOKING_VIEW,
       Permission.EQUIPMENT_VIEW,
-      Permission.ENVIRONMENT_VIEW
+      Permission.ENVIRONMENT_VIEW,
+      Permission.PROJECT_CREATE,
+      Permission.PROJECT_VIEW
     ],
     status: 'active'
   },
@@ -98,13 +105,13 @@ const mockUsers: Record<string, User> = {
     permissions: [
       Permission.LAB_VIEW,
       Permission.EQUIPMENT_VIEW,
-      Permission.ENVIRONMENT_VIEW
+      Permission.ENVIRONMENT_VIEW,
+      Permission.PROJECT_VIEW
     ],
     status: 'active'
   }
 }
 
-// Function to generate default permissions by role
 const getDefaultPermissionsByRole = (role: UserRole): Permission[] => {
   switch (role) {
     case UserRole.SYSTEM_ADMIN:
@@ -124,8 +131,11 @@ const getDefaultPermissionsByRole = (role: UserRole): Permission[] => {
         Permission.EQUIPMENT_VIEW,
         Permission.ENVIRONMENT_CONFIG,
         Permission.ENVIRONMENT_VIEW,
-        Permission.ACCESS_MANAGE,
-        Permission.ACCESS_VIEW,
+        Permission.PROJECT_CREATE,
+        Permission.PROJECT_EDIT,
+        Permission.PROJECT_DELETE,
+        Permission.PROJECT_APPROVE,
+        Permission.PROJECT_VIEW,
         Permission.REPORT_VIEW,
         Permission.REPORT_EXPORT
       ]
@@ -139,8 +149,10 @@ const getDefaultPermissionsByRole = (role: UserRole): Permission[] => {
         Permission.EQUIPMENT_MANAGE,
         Permission.EQUIPMENT_VIEW,
         Permission.ENVIRONMENT_VIEW,
-        Permission.ACCESS_MANAGE,
-        Permission.ACCESS_VIEW,
+        Permission.PROJECT_CREATE,
+        Permission.PROJECT_EDIT,
+        Permission.PROJECT_APPROVE,
+        Permission.PROJECT_VIEW,
         Permission.REPORT_VIEW
       ]
     case UserRole.TEACHER:
@@ -151,7 +163,9 @@ const getDefaultPermissionsByRole = (role: UserRole): Permission[] => {
         Permission.BOOKING_VIEW,
         Permission.EQUIPMENT_VIEW,
         Permission.ENVIRONMENT_VIEW,
-        Permission.ACCESS_VIEW
+        Permission.PROJECT_CREATE,
+        Permission.PROJECT_EDIT,
+        Permission.PROJECT_VIEW
       ]
     case UserRole.STUDENT:
       return [
@@ -159,13 +173,16 @@ const getDefaultPermissionsByRole = (role: UserRole): Permission[] => {
         Permission.BOOKING_CREATE,
         Permission.BOOKING_VIEW,
         Permission.EQUIPMENT_VIEW,
-        Permission.ENVIRONMENT_VIEW
+        Permission.ENVIRONMENT_VIEW,
+        Permission.PROJECT_CREATE,
+        Permission.PROJECT_VIEW
       ]
     case UserRole.VISITOR:
       return [
         Permission.LAB_VIEW,
         Permission.EQUIPMENT_VIEW,
-        Permission.ENVIRONMENT_VIEW
+        Permission.ENVIRONMENT_VIEW,
+        Permission.PROJECT_VIEW
       ]
     default:
       return []
@@ -223,6 +240,116 @@ const mockLabs: Lab[] = [
     }],
     openHours: 'Mon–Fri 08:00–20:00',
     desc: 'Private cloud environment supporting containerized application deployment and management.'
+  }
+]
+
+const mockProjects: Project[] = [
+  {
+    id: '1',
+    title: 'Machine Learning in Medical Diagnosis',
+    description: 'Developing an AI system for automated medical image analysis and diagnosis using deep learning techniques.',
+    status: 'in_progress',
+    priority: 'high',
+    principalInvestigator: {
+      id: '1',
+      name: 'Dr. Sarah Wilson',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face',
+      email: 'sarah@example.com'
+    },
+    teamMembers: ['2', '3'],
+    laboratory: 'AI Laboratory',
+    startDate: '2025-01-15',
+    endDate: '2025-06-30',
+    progress: 65,
+    phases: {
+      application: true,
+      design: true,
+      execution: true,
+      archive: false
+    },
+    objectives: 'Improve medical diagnosis accuracy by 25% using AI algorithms',
+    resources: {
+      equipment: ['GPU Servers', 'Medical Image Database'],
+      materials: ['Medical Images', 'Labeling Tools'],
+      budget: 50000
+    },
+    deliverables: ['AI Model', 'Technical Report', 'Research Paper'],
+    tags: ['AI', 'Medical', 'Deep Learning'],
+    createdAt: '2025-01-10',
+    updatedAt: '2025-09-20'
+  },
+  {
+    id: '2',
+    title: 'IoT Environmental Monitoring System',
+    description: 'Building a comprehensive IoT network for real-time environmental monitoring in smart buildings.',
+    status: 'pending',
+    priority: 'medium',
+    principalInvestigator: {
+      id: '4',
+      name: 'Prof. Mike Johnson',
+      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face',
+      email: 'mike@example.com'
+    },
+    teamMembers: ['2'],
+    laboratory: 'IoT Laboratory',
+    startDate: '2025-10-01',
+    endDate: '2025-12-31',
+    progress: 0,
+    phases: {
+      application: true,
+      design: false,
+      execution: false,
+      archive: false
+    },
+    objectives: 'Create efficient energy management system for smart buildings',
+    resources: {
+      equipment: ['Sensor Modules', 'Gateway Devices'],
+      materials: ['IoT Components', 'Development Boards'],
+      budget: 25000
+    },
+    deliverables: ['IoT System', 'Mobile App', 'Installation Guide'],
+    tags: ['IoT', 'Environment', 'Smart Building'],
+    createdAt: '2025-09-15',
+    updatedAt: '2025-09-27'
+  },
+  {
+    id: '3',
+    title: 'Blockchain Security Framework',
+    description: 'Research and development of advanced security protocols for blockchain networks.',
+    status: 'completed',
+    priority: 'high',
+    principalInvestigator: {
+      id: '1',
+      name: 'Dr. Sarah Wilson',
+      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face',
+      email: 'sarah@example.com'
+    },
+    teamMembers: ['3'],
+    laboratory: 'Network Security Lab',
+    startDate: '2024-08-01',
+    endDate: '2025-01-31',
+    progress: 100,
+    phases: {
+      application: true,
+      design: true,
+      execution: true,
+      archive: true
+    },
+    objectives: 'Enhance blockchain security by implementing novel consensus mechanisms',
+    resources: {
+      equipment: ['Security Testing Tools', 'Blockchain Nodes'],
+      materials: ['Crypto Libraries', 'Testing Framework'],
+      budget: 75000
+    },
+    deliverables: ['Security Framework', 'Implementation Code', 'Security Analysis Report'],
+    tags: ['Blockchain', 'Security', 'Cryptography'],
+    createdAt: '2024-07-20',
+    updatedAt: '2025-02-01',
+    approvedAt: '2024-08-01',
+    approvedBy: {
+      id: '1',
+      name: 'John Smith'
+    }
   }
 ]
 
@@ -301,34 +428,16 @@ const generateEnvData = (hours: number = 24): EnvPoint[] => {
   return points
 }
 
-const mockAccessLogs: AccessLog[] = [
-  {
-    id: '1',
-    userId: '1',
-    labId: '1',
-    ts: dayjs().subtract(1, 'hour').toISOString(),
-    action: 'in',
-    user: {
-      name: 'John Smith',
-      avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face'
-    },
-    lab: {
-      name: 'AI Laboratory'
-    }
-  }
-]
-
 export const mockApi = {
   auth: {
     async login(data: { email: string; password: string }): Promise<ApiResponse<{ user: User; token: string }>> {
       console.log('🔐 Mock Login - Input:', data)
       
-      await delay(800) // 模拟网络延迟
+      await delay(800)
       
-      // 检查邮箱是否存在
       const user = mockUsers[data.email]
       if (!user) {
-        console.error('❌ Mock Login - User not found:', data.email)
+        console.error('⛔ Mock Login - User not found:', data.email)
         const error = new Error('User not found')
         ;(error as any).response = {
           data: { message: 'User not found' }
@@ -336,9 +445,8 @@ export const mockApi = {
         throw error
       }
       
-      // 检查密码
       if (data.password !== '123456') {
-        console.error('❌ Mock Login - Wrong password')
+        console.error('⛔ Mock Login - Wrong password')
         const error = new Error('Invalid password')
         ;(error as any).response = {
           data: { message: 'Invalid password' }
@@ -346,7 +454,6 @@ export const mockApi = {
         throw error
       }
       
-      // 登录成功
       const token = 'mock-token-' + Date.now()
       console.log('✅ Mock Login - Success:', user.name)
       
@@ -363,11 +470,10 @@ export const mockApi = {
     async register(data: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
       console.log('📝 Mock Register - Input:', data)
       
-      await delay(1000) // 模拟网络延迟
+      await delay(1000)
       
-      // 检查邮箱是否已存在
       if (mockUsers[data.email]) {
-        console.error('❌ Mock Register - Email already exists:', data.email)
+        console.error('⛔ Mock Register - Email already exists:', data.email)
         const error = new Error('Email already exists')
         ;(error as any).response = {
           data: { message: 'Email already exists' }
@@ -375,9 +481,8 @@ export const mockApi = {
         throw error
       }
       
-      // 验证密码确认
       if (data.password !== data.confirmPassword) {
-        console.error('❌ Mock Register - Password confirmation mismatch')
+        console.error('⛔ Mock Register - Password confirmation mismatch')
         const error = new Error('Password confirmation does not match')
         ;(error as any).response = {
           data: { message: 'Password confirmation does not match' }
@@ -385,7 +490,6 @@ export const mockApi = {
         throw error
       }
       
-      // 创建新用户
       const newUserId = (Object.keys(mockUsers).length + 1).toString()
       const defaultRole = data.role || UserRole.STUDENT
       const permissions = getDefaultPermissionsByRole(defaultRole)
@@ -400,10 +504,8 @@ export const mockApi = {
         status: 'active'
       }
       
-      // 添加到mock用户列表
       mockUsers[data.email] = newUser
       
-      // 生成token
       const token = 'mock-token-' + Date.now()
       
       console.log('✅ Mock Register - Success:', newUser.name)
@@ -413,7 +515,7 @@ export const mockApi = {
         data: {
           user: newUser,
           token,
-          requiresApproval: false // 在mock环境中不需要审批
+          requiresApproval: false
         },
         message: 'Registration successful'
       }
@@ -422,7 +524,6 @@ export const mockApi = {
     async getProfile(): Promise<ApiResponse<User>> {
       await delay(300)
       
-      // 从 localStorage 获取当前用户信息
       const userInfo = localStorage.getItem('user_info')
       if (userInfo) {
         const user = JSON.parse(userInfo)
@@ -433,7 +534,6 @@ export const mockApi = {
         }
       }
       
-      // 默认返回管理员信息
       return {
         code: 200,
         data: mockUsers['admin@example.com'],
@@ -652,12 +752,258 @@ export const mockApi = {
     }
   },
   
-  access: {
-    async getLogs(params?: any): Promise<ApiResponse<AccessLog[]>> {
-      await delay(400)
+  projects: {
+    async getList(params?: ProjectFilters): Promise<ApiResponse<Project[]>> {
+      await delay(600)
+      let filteredProjects = [...mockProjects]
+      
+      if (params?.keyword) {
+        const keyword = params.keyword.toLowerCase()
+        filteredProjects = filteredProjects.filter(project =>
+          project.title.toLowerCase().includes(keyword) ||
+          project.description.toLowerCase().includes(keyword) ||
+          project.principalInvestigator.name.toLowerCase().includes(keyword)
+        )
+      }
+      
+      if (params?.status) {
+        filteredProjects = filteredProjects.filter(project => project.status === params.status)
+      }
+      
+      if (params?.priority) {
+        filteredProjects = filteredProjects.filter(project => project.priority === params.priority)
+      }
+      
+      if (params?.laboratory) {
+        filteredProjects = filteredProjects.filter(project =>
+          project.laboratory?.toLowerCase().includes(params.laboratory.toLowerCase())
+        )
+      }
+      
+      if (params?.principalInvestigator) {
+        filteredProjects = filteredProjects.filter(project =>
+          project.principalInvestigator.name.toLowerCase().includes(params.principalInvestigator.toLowerCase())
+        )
+      }
+      
       return {
         code: 200,
-        data: mockAccessLogs,
+        data: filteredProjects,
+        message: 'success'
+      }
+    },
+    
+    async getById(id: string): Promise<ApiResponse<Project>> {
+      await delay(400)
+      const project = mockProjects.find(p => p.id === id)
+      if (!project) {
+        const error = new Error('Project not found')
+        ;(error as any).response = {
+          data: { message: 'Project not found' }
+        }
+        throw error
+      }
+      return {
+        code: 200,
+        data: project,
+        message: 'success'
+      }
+    },
+    
+    async create(data: CreateProjectRequest): Promise<ApiResponse<Project>> {
+      await delay(1000)
+      const newProject: Project = {
+        id: Date.now().toString(),
+        title: data.title,
+        description: data.description,
+        status: 'pending',
+        priority: data.priority,
+        principalInvestigator: mockUsers['teacher@example.com'] as any,
+        teamMembers: data.teamMembers,
+        laboratory: data.laboratory,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        progress: 0,
+        phases: {
+          application: true,
+          design: false,
+          execution: false,
+          archive: false
+        },
+        objectives: data.objectives,
+        resources: data.resources,
+        deliverables: data.deliverables,
+        tags: data.tags,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+      mockProjects.unshift(newProject)
+      return {
+        code: 200,
+        data: newProject,
+        message: 'Project created successfully'
+      }
+    },
+    
+    async update(id: string, data: UpdateProjectRequest): Promise<ApiResponse<Project>> {
+      await delay(800)
+      const index = mockProjects.findIndex(p => p.id === id)
+      if (index === -1) {
+        const error = new Error('Project not found')
+        ;(error as any).response = {
+          data: { message: 'Project not found' }
+        }
+        throw error
+      }
+      const updatedProject = { 
+        ...mockProjects[index], 
+        ...data,
+        updatedAt: new Date().toISOString()
+      }
+      mockProjects[index] = updatedProject
+      return {
+        code: 200,
+        data: updatedProject,
+        message: 'Project updated successfully'
+      }
+    },
+    
+    async approve(id: string, data: ProjectApprovalRequest): Promise<ApiResponse<Project>> {
+      await delay(600)
+      const index = mockProjects.findIndex(p => p.id === id)
+      if (index === -1) {
+        const error = new Error('Project not found')
+        ;(error as any).response = {
+          data: { message: 'Project not found' }
+        }
+        throw error
+      }
+      
+      const updatedProject = { 
+        ...mockProjects[index],
+        status: 'approved' as const,
+        updatedAt: new Date().toISOString(),
+        approvedAt: new Date().toISOString(),
+        approvedBy: {
+          id: '1',
+          name: 'John Smith'
+        }
+      }
+      mockProjects[index] = updatedProject
+      return {
+        code: 200,
+        data: updatedProject,
+        message: 'Project approved successfully'
+      }
+    },
+    
+    async reject(id: string, data: ProjectApprovalRequest): Promise<ApiResponse<Project>> {
+      await delay(600)
+      const index = mockProjects.findIndex(p => p.id === id)
+      if (index === -1) {
+        const error = new Error('Project not found')
+        ;(error as any).response = {
+          data: { message: 'Project not found' }
+        }
+        throw error
+      }
+      
+      const updatedProject = { 
+        ...mockProjects[index],
+        status: 'rejected' as const,
+        updatedAt: new Date().toISOString(),
+        rejectedAt: new Date().toISOString(),
+        rejectedBy: {
+          id: '1',
+          name: 'John Smith'
+        },
+        rejectionReason: data.comments
+      }
+      mockProjects[index] = updatedProject
+      return {
+        code: 200,
+        data: updatedProject,
+        message: 'Project rejected successfully'
+      }
+    },
+    
+    async delete(id: string): Promise<ApiResponse> {
+      await delay(500)
+      const index = mockProjects.findIndex(p => p.id === id)
+      if (index === -1) {
+        const error = new Error('Project not found')
+        ;(error as any).response = {
+          data: { message: 'Project not found' }
+        }
+        throw error
+      }
+      
+      mockProjects.splice(index, 1)
+      return {
+        code: 200,
+        data: null,
+        message: 'Project deleted successfully'
+      }
+    },
+    
+    async updateProgress(id: string, progress: number, notes?: string): Promise<ApiResponse<Project>> {
+      await delay(500)
+      const index = mockProjects.findIndex(p => p.id === id)
+      if (index === -1) {
+        const error = new Error('Project not found')
+        ;(error as any).response = {
+          data: { message: 'Project not found' }
+        }
+        throw error
+      }
+      
+      const updatedProject = { 
+        ...mockProjects[index],
+        progress,
+        updatedAt: new Date().toISOString()
+      }
+      
+      // Auto-update phases based on progress
+      if (progress >= 25 && !updatedProject.phases.design) {
+        updatedProject.phases.design = true
+      }
+      if (progress >= 50 && !updatedProject.phases.execution) {
+        updatedProject.phases.execution = true
+      }
+      if (progress >= 100 && !updatedProject.phases.archive) {
+        updatedProject.phases.archive = true
+        updatedProject.status = 'completed'
+      }
+      
+      mockProjects[index] = updatedProject
+      return {
+        code: 200,
+        data: updatedProject,
+        message: 'Project progress updated successfully'
+      }
+    },
+    
+    async getStats(): Promise<ApiResponse<{
+      total: number
+      pending: number
+      approved: number
+      inProgress: number
+      completed: number
+      archived: number
+      rejected: number
+    }>> {
+      await delay(300)
+      return {
+        code: 200,
+        data: {
+          total: mockProjects.length,
+          pending: mockProjects.filter(p => p.status === 'pending').length,
+          approved: mockProjects.filter(p => p.status === 'approved').length,
+          inProgress: mockProjects.filter(p => p.status === 'in_progress').length,
+          completed: mockProjects.filter(p => p.status === 'completed').length,
+          archived: mockProjects.filter(p => p.status === 'archived').length,
+          rejected: mockProjects.filter(p => p.status === 'rejected').length
+        },
         message: 'success'
       }
     }
@@ -665,8 +1011,7 @@ export const mockApi = {
   
   upload: {
     async upload(file: File): Promise<ApiResponse<{ url: string }>> {
-      await delay(1500) // 模拟上传时间
-      // Simulate upload and return a mock URL
+      await delay(1500)
       const mockUrl = `https://images.unsplash.com/photo-${Date.now()}?w=400&h=240&fit=crop`
       console.log('📤 Mock Upload:', file.name, '→', mockUrl)
       return {

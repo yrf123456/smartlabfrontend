@@ -1,16 +1,17 @@
 import axios from 'axios'
-import type { ApiResponse, User, Lab, BookingEvent, Equipment, EnvPoint, AccessLog, RegisterRequest, RegisterResponse } from '@/types'
+import type { ApiResponse, User, Lab, BookingEvent, Equipment, EnvPoint, RegisterRequest, RegisterResponse } from '@/types'
 import { mockApi } from './mock'
 
 const baseURL = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api'
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
+
+console.log('🔧 API Configuration:', { baseURL, useMock })
 
 const request = axios.create({
   baseURL,
   timeout: 10000
 })
 
-// Custom error interface with response property
 interface CustomError extends Error {
   response?: {
     data?: {
@@ -19,7 +20,6 @@ interface CustomError extends Error {
   }
 }
 
-// Request interceptor
 request.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token')
@@ -33,30 +33,24 @@ request.interceptors.request.use(
   }
 )
 
-// Response interceptor  
 request.interceptors.response.use(
   (response) => {
-    // Handle backend R<T> response format
     const data = response.data
     
-    // If backend returns R<T> format with code field
     if (data && typeof data.code !== 'undefined') {
       if (data.code === 0) {
-        // Success case - return in ApiResponse format
         return {
           code: 0,
           data: data.data,
           message: data.msg || 'Success'
         }
       } else {
-        // Error case - throw error with backend message
         const error = new Error(data.msg || 'Request failed') as CustomError
         error.response = { data: { message: data.msg } }
         throw error
       }
     }
     
-    // Fallback to original data
     return data
   },
   (error) => {
@@ -69,7 +63,6 @@ request.interceptors.response.use(
   }
 )
 
-// Auth API
 export const authApi = {
   login: (data: { email: string; password: string }): Promise<ApiResponse<{ user: User; token: string }>> => {
     if (useMock) return mockApi.auth.login(data)
@@ -92,7 +85,6 @@ export const authApi = {
   }
 }
 
-// Labs API
 export const labsApi = {
   getList: (params?: { keyword?: string; tags?: string[]; status?: string }): Promise<ApiResponse<Lab[]>> => {
     if (useMock) return mockApi.labs.getList(params)
@@ -115,7 +107,6 @@ export const labsApi = {
   }
 }
 
-// Bookings API
 export const bookingsApi = {
   getList: (params?: { from?: string; to?: string; labId?: string }): Promise<ApiResponse<BookingEvent[]>> => {
     if (useMock) return mockApi.bookings.getList(params)
@@ -143,7 +134,6 @@ export const bookingsApi = {
   }
 }
 
-// Equipment API
 export const equipmentApi = {
   getList: (params?: { labId?: string; status?: string }): Promise<ApiResponse<Equipment[]>> => {
     if (useMock) return mockApi.equipment.getList(params)
@@ -151,7 +141,6 @@ export const equipmentApi = {
   }
 }
 
-// Environment API
 export const environmentApi = {
   getSeries: (labId: string, params?: { from?: string; to?: string }): Promise<ApiResponse<EnvPoint[]>> => {
     if (useMock) return mockApi.environment.getSeries(labId, params)
@@ -164,15 +153,65 @@ export const environmentApi = {
   }
 }
 
-// Access API
-export const accessApi = {
-  getLogs: (params?: { labId?: string; from?: string; to?: string }): Promise<ApiResponse<AccessLog[]>> => {
-    if (useMock) return mockApi.access.getLogs(params)
-    return request.get('/access/logs', { params })
+export const projectsApi = {
+  getList: (params?: any): Promise<ApiResponse<any[]>> => {
+    console.log('📡 ProjectsApi: getList called with params:', params)
+    if (useMock) {
+      console.log('📡 Using mock API for projects.getList')
+      return mockApi.projects.getList(params)
+    }
+    return request.get('/projects', { params })
+  },
+  
+  getById: (id: string): Promise<ApiResponse<any>> => {
+    console.log('📡 ProjectsApi: getById called with id:', id)
+    if (useMock) return mockApi.projects.getById(id)
+    return request.get(`/projects/${id}`)
+  },
+  
+  create: (data: any): Promise<ApiResponse<any>> => {
+    console.log('📡 ProjectsApi: create called with data:', data)
+    if (useMock) return mockApi.projects.create(data)
+    return request.post('/projects', data)
+  },
+  
+  update: (id: string, data: any): Promise<ApiResponse<any>> => {
+    console.log('📡 ProjectsApi: update called with id:', id, 'data:', data)
+    if (useMock) return mockApi.projects.update(id, data)
+    return request.put(`/projects/${id}`, data)
+  },
+  
+  approve: (id: string, data: any): Promise<ApiResponse<any>> => {
+    console.log('📡 ProjectsApi: approve called with id:', id, 'data:', data)
+    if (useMock) return mockApi.projects.approve(id, data)
+    return request.put(`/projects/${id}/approve`, data)
+  },
+  
+  reject: (id: string, data: any): Promise<ApiResponse<any>> => {
+    console.log('📡 ProjectsApi: reject called with id:', id, 'data:', data)
+    if (useMock) return mockApi.projects.reject(id, data)
+    return request.put(`/projects/${id}/reject`, data)
+  },
+  
+  delete: (id: string): Promise<ApiResponse> => {
+    console.log('📡 ProjectsApi: delete called with id:', id)
+    if (useMock) return mockApi.projects.delete(id)
+    return request.delete(`/projects/${id}`)
+  },
+  
+  updateProgress: (id: string, progress: number, notes?: string): Promise<ApiResponse<any>> => {
+    console.log('📡 ProjectsApi: updateProgress called with id:', id, 'progress:', progress)
+    if (useMock) return mockApi.projects.updateProgress(id, progress, notes)
+    return request.put(`/projects/${id}/progress`, { progress, notes })
+  },
+  
+  getStats: (): Promise<ApiResponse<any>> => {
+    console.log('📡 ProjectsApi: getStats called')
+    if (useMock) return mockApi.projects.getStats()
+    return request.get('/projects/stats')
   }
 }
 
-// Upload API
 export const uploadApi = {
   upload: (file: File): Promise<ApiResponse<{ url: string }>> => {
     if (useMock) return mockApi.upload.upload(file)
@@ -192,6 +231,10 @@ export const api = {
   bookings: bookingsApi,
   equipment: equipmentApi,
   environment: environmentApi,
-  access: accessApi,
+  projects: projectsApi,
   upload: uploadApi
 }
+
+// 添加调试信息
+console.log('🔧 API exports:', Object.keys(api))
+console.log('🔧 Projects API methods:', Object.keys(api.projects))

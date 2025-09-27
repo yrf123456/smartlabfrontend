@@ -37,7 +37,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/Labs.vue'),
         meta: { title: 'Laboratory Management' }
       },
-      // 注意：新建路由必须在参数路由之前
       {
         path: 'labs/new/edit',
         name: 'LabCreate',
@@ -83,10 +82,36 @@ const routes: RouteRecordRaw[] = [
         meta: { title: 'Environment Monitoring' }
       },
       {
-        path: 'access',
-        name: 'Access',
-        component: () => import('@/views/Access.vue'),
-        meta: { title: 'Access Control' }
+        path: 'projects',
+        name: 'Projects',
+        component: () => import('@/views/Projects.vue'),
+        meta: { title: 'Project Management' }
+      },
+      {
+        path: 'projects/new',
+        name: 'ProjectCreate',
+        component: () => import('@/views/ProjectEdit.vue'),
+        meta: { 
+          title: 'Create Project',
+          roles: ['SYS_ADMIN', 'SYSTEM_ADMIN', 'DEPT_ADMIN', 'DEPARTMENT_ADMIN', 'TEACHER', 'STUDENT'] 
+        }
+      },
+      {
+        path: 'projects/:projectId',
+        name: 'ProjectDetail',
+        component: () => import('@/views/ProjectDetail.vue'),
+        props: true,
+        meta: { title: 'Project Details' }
+      },
+      {
+        path: 'projects/:projectId/edit',
+        name: 'ProjectEdit',
+        component: () => import('@/views/ProjectEdit.vue'),
+        props: true,
+        meta: { 
+          title: 'Edit Project',
+          roles: ['SYS_ADMIN', 'SYSTEM_ADMIN', 'DEPT_ADMIN', 'DEPARTMENT_ADMIN', 'TEACHER'] 
+        }
       },
       {
         path: 'users',
@@ -114,7 +139,6 @@ const routes: RouteRecordRaw[] = [
       }
     ]
   },
-  // 404 页面
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
@@ -128,7 +152,6 @@ const router = createRouter({
   routes
 })
 
-// 等待认证初始化完成的辅助函数
 const waitForAuthInitialization = async (maxWaitTime = 5000): Promise<boolean> => {
   const authStore = useAuthStore()
   const startTime = Date.now()
@@ -147,9 +170,7 @@ router.beforeEach(async (to, from, next) => {
   try {
     const authStore = useAuthStore()
     
-    // 如果访问登录或注册页面，优先处理
     if (to.path === '/login' || to.path === '/register') {
-      // 如果已经登录，重定向到dashboard
       if (authStore.isAuthenticated) {
         console.log('✅ Router: Already logged in, redirecting to dashboard')
         const redirect = to.query.redirect as string
@@ -157,7 +178,6 @@ router.beforeEach(async (to, from, next) => {
         return
       }
       
-      // 未登录，允许访问登录或注册页
       if (to.meta.title) {
         document.title = `${to.meta.title} - Smart Lab`
       }
@@ -165,20 +185,17 @@ router.beforeEach(async (to, from, next) => {
       return
     }
     
-    // 等待认证状态初始化完成
     if (!authStore.initialized) {
       console.log('⏳ Router: Waiting for auth initialization...')
       
       const initialized = await waitForAuthInitialization(5000)
       
       if (!initialized) {
-        console.error('❌ Router: Auth initialization timeout')
-        // 超时情况下，如果访问的是登录或注册页面，允许继续
+        console.error('⌛ Router: Auth initialization timeout')
         if (to.path === '/login' || to.path === '/register') {
           next()
           return
         }
-        // 否则重定向到登录页面
         next('/login')
         return
       }
@@ -193,9 +210,8 @@ router.beforeEach(async (to, from, next) => {
     
     console.log(`🔐 Router: Auth check - requiresAuth: ${requiresAuth}, isAuthenticated: ${isAuthenticated}`)
     
-    // 需要认证但未登录
     if (requiresAuth && !isAuthenticated) {
-      console.log('❌ Router: Access denied, redirecting to login')
+      console.log('⛔ Router: Access denied, redirecting to login')
       next({
         path: '/login',
         query: to.path !== '/' ? { redirect: to.fullPath } : undefined
@@ -203,15 +219,14 @@ router.beforeEach(async (to, from, next) => {
       return
     }
     
-    // 检查角色权限
     if (to.meta.roles && Array.isArray(to.meta.roles) && isAuthenticated) {
-      console.log(`🔍 Router: Checking roles - Required: ${to.meta.roles}, User roles: ${authStore.user?.roles}`)
+      console.log(`🔑 Router: Checking roles - Required: ${to.meta.roles}, User roles: ${authStore.user?.roles}`)
       
       const hasRequiredRole = to.meta.roles.some(role => 
         authStore.hasRole(role as string)
       )
       
-      console.log(`🔍 Router: Role check result: ${hasRequiredRole}`)
+      console.log(`🔑 Router: Role check result: ${hasRequiredRole}`)
       
       if (!hasRequiredRole) {
         console.log('🚫 Router: Insufficient permissions, redirecting to dashboard')
@@ -220,7 +235,6 @@ router.beforeEach(async (to, from, next) => {
       }
     }
     
-    // 设置页面标题
     if (to.meta.title) {
       document.title = `${to.meta.title} - Smart Lab`
     }
@@ -233,7 +247,6 @@ router.beforeEach(async (to, from, next) => {
   } catch (error) {
     console.error('💥 Router: Navigation error:', error)
     
-    // 发生错误时的降级处理
     if (to.path === '/login' || to.path === '/register') {
       next()
     } else {
@@ -242,21 +255,18 @@ router.beforeEach(async (to, from, next) => {
   }
 })
 
-// 路由切换后的处理
 router.afterEach((to, from, failure) => {
   if (failure) {
-    console.error('❌ Router: Navigation failed:', failure)
+    console.error('⌛ Router: Navigation failed:', failure)
     return
   }
   
   console.log(`✅ Router: Successfully navigated to ${to.path}`)
   
-  // 滚动到顶部
   if (typeof window !== 'undefined') {
     window.scrollTo(0, 0)
   }
   
-  // 在开发环境中记录导航详情
   if (import.meta.env.DEV) {
     console.log(`📊 Router: Navigation details:`, {
       from: from.path,
@@ -268,12 +278,8 @@ router.afterEach((to, from, failure) => {
   }
 })
 
-// 路由错误处理
 router.onError((error) => {
   console.error('🚨 Router: Global error:', error)
-  
-  // 可以在这里添加全局错误处理逻辑
-  // 比如显示错误页面或重定向到安全页面
 })
 
 export default router
