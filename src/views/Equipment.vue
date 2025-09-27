@@ -7,13 +7,22 @@
         <p class="text-gray-600 mt-1">Manage laboratory equipment and resources</p>
       </div>
       
-      <button 
-        class="bg-primary-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-600 transition-colors"
-        @click="showAddModal = true"
-      >
-        <Plus class="w-4 h-4 inline mr-2" />
-        Add Equipment
-      </button>
+      <div class="flex items-center space-x-3">
+        <button 
+          class="bg-primary-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-600 transition-colors"
+          @click="showBookModal = true"
+        >
+          <Plus class="w-4 h-4 inline mr-2" />
+          Book Equipment
+        </button>
+        <button 
+          class="bg-primary-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-600 transition-colors"
+          @click="showAddModal = true"
+        >
+          <Plus class="w-4 h-4 inline mr-2" />
+          Add Equipment
+        </button>
+      </div>
     </div>
 
     <!-- Filters and Search -->
@@ -153,6 +162,18 @@
           </div>
         </div>
         
+        <!-- Quick Book Button -->
+        <div class="mb-3">
+          <button 
+            class="w-full bg-green-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+            :disabled="equipment.status !== 'available'"
+            @click="quickBookEquipment(equipment)"
+          >
+            <Calendar class="w-4 h-4 inline mr-1" />
+            {{ equipment.status === 'available' ? 'Quick Book' : 'Not Available' }}
+          </button>
+        </div>
+        
         <!-- Status Toggle Buttons -->
         <div class="grid grid-cols-2 gap-1 mb-3">
           <button 
@@ -256,6 +277,239 @@
       </div>
     </div>
 
+    <!-- Equipment Bookings Section -->
+    <div v-if="equipmentBookings.length > 0" class="bg-white rounded-2xl p-6 border border-gray-200">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h2 class="text-xl font-bold text-gray-900">Equipment Bookings</h2>
+          <p class="text-gray-600 mt-1">Recent equipment booking requests</p>
+        </div>
+        <div class="text-sm text-gray-500">
+          Total: {{ equipmentBookings.length }} booking{{ equipmentBookings.length !== 1 ? 's' : '' }}
+        </div>
+      </div>
+
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Booking ID</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Equipment</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Title</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Duration</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Contact</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Status</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Created</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              v-for="booking in equipmentBookings" 
+              :key="booking.id"
+              class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+            >
+              <td class="py-4 px-4">
+                <span class="font-mono text-sm text-gray-900">{{ booking.id }}</span>
+              </td>
+              <td class="py-4 px-4">
+                <div class="text-sm">
+                  <div class="font-medium text-gray-900">
+                    {{ getEquipmentName(booking.equipmentId) }}
+                  </div>
+                  <div class="text-gray-500">
+                    {{ getEquipmentModel(booking.equipmentId) }}
+                  </div>
+                </div>
+              </td>
+              <td class="py-4 px-4">
+                <div class="text-sm">
+                  <div class="font-medium text-gray-900">{{ booking.title }}</div>
+                  <div class="text-gray-500 truncate max-w-xs" :title="booking.purpose">
+                    {{ booking.purpose }}
+                  </div>
+                </div>
+              </td>
+              <td class="py-4 px-4">
+                <div class="text-sm text-gray-900">
+                  <div>{{ formatDateTime(booking.startDateTime) }}</div>
+                  <div class="text-gray-500">to {{ formatDateTime(booking.endDateTime) }}</div>
+                </div>
+              </td>
+              <td class="py-4 px-4">
+                <div class="text-sm">
+                  <div class="font-medium text-gray-900">{{ booking.contactPerson }}</div>
+                  <div class="text-gray-500">{{ booking.contactEmail }}</div>
+                </div>
+              </td>
+              <td class="py-4 px-4">
+                <span 
+                  class="px-3 py-1 text-xs font-medium rounded-full"
+                  :class="getBookingStatusClass(booking.status || 'pending')"
+                >
+                  {{ getBookingStatusText(booking.status || 'pending') }}
+                </span>
+              </td>
+              <td class="py-4 px-4">
+                <span class="text-sm text-gray-600">
+                  {{ formatDateTime(booking.createdAt || '') }}
+                </span>
+              </td>
+              <td class="py-4 px-4">
+                <div class="flex items-center space-x-2">
+                  <button
+                    v-if="booking.status === 'pending'"
+                    class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded hover:bg-green-200 transition-colors"
+                    @click="approveBooking(booking.id || '')"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    v-if="booking.status === 'pending'"
+                    class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded hover:bg-red-200 transition-colors"
+                    @click="rejectBooking(booking.id || '')"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded hover:bg-gray-200 transition-colors"
+                    @click="deleteBooking(booking.id || '')"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Empty State for Bookings -->
+      <div v-if="equipmentBookings.length === 0" class="text-center py-12">
+        <Calendar class="w-12 h-12 text-gray-400 mx-auto mb-4" />
+        <h3 class="text-lg font-medium text-gray-900 mb-2">No Equipment Bookings</h3>
+        <p class="text-gray-600">Equipment bookings will appear here once created.</p>
+      </div>
+    </div>
+
+    <!-- Book Equipment Modal -->
+    <div 
+      v-if="showBookModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click="showBookModal = false"
+    >
+      <div 
+        class="bg-white rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
+        @click.stop
+      >
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Book Equipment</h3>
+        
+        <form @submit.prevent="createBooking" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Select Equipment</label>
+            <select 
+              v-model="newBooking.equipmentId"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              required
+            >
+              <option value="">Choose an equipment</option>
+              <option 
+                v-for="item in availableEquipment" 
+                :key="item.id" 
+                :value="item.id"
+              >
+                {{ item.name }} ({{ item.model }}) - {{ item.location }}
+              </option>
+            </select>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date & Time</label>
+              <input 
+                v-model="newBooking.startDateTime"
+                type="datetime-local" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                required
+              >
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">End Date & Time</label>
+              <input 
+                v-model="newBooking.endDateTime"
+                type="datetime-local" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                required
+              >
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Booking Title</label>
+            <input 
+              v-model="newBooking.title"
+              type="text" 
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              placeholder="Enter booking title or purpose"
+              required
+            >
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Purpose/Description</label>
+            <textarea 
+              v-model="newBooking.purpose"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              rows="3"
+              placeholder="Describe the purpose of equipment usage"
+              required
+            ></textarea>
+          </div>
+          
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
+              <input 
+                v-model="newBooking.contactPerson"
+                type="text" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                placeholder="Your name"
+                required
+              >
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Contact Email</label>
+              <input 
+                v-model="newBooking.contactEmail"
+                type="email" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                placeholder="your.email@example.com"
+                required
+              >
+            </div>
+          </div>
+          
+          <div class="flex items-center space-x-3 pt-4">
+            <button 
+              type="submit"
+              class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
+            >
+              Create Booking
+            </button>
+            <button 
+              type="button"
+              class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              @click="showBookModal = false"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Add Equipment Modal -->
     <div 
       v-if="showAddModal"
@@ -354,6 +608,32 @@
         </form>
       </div>
     </div>
+
+    <!-- Success Modal -->
+    <div 
+      v-if="showSuccessModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click="showSuccessModal = false"
+    >
+      <div 
+        class="bg-white rounded-2xl p-6 w-full max-w-md mx-4"
+        @click.stop
+      >
+        <div class="text-center">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle class="w-8 h-8 text-green-600" />
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Booking Created Successfully!</h3>
+          <p class="text-gray-600 mb-4">Your equipment booking has been submitted and is pending approval.</p>
+          <button 
+            class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
+            @click="showSuccessModal = false"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -371,7 +651,8 @@ import {
   Wifi,
   Smartphone,
   Activity,
-  HardDrive
+  HardDrive,
+  Calendar
 } from 'lucide-vue-next'
 
 // Define interfaces
@@ -395,12 +676,27 @@ interface EquipmentStats {
   offline: number
 }
 
+interface EquipmentBooking {
+  id?: string
+  equipmentId: string
+  title: string
+  startDateTime: string
+  endDateTime: string
+  purpose: string
+  contactPerson: string
+  contactEmail: string
+  status?: 'pending' | 'approved' | 'rejected'
+  createdAt?: string
+}
+
 // Reactive data
 const searchQuery = ref('')
 const selectedStatus = ref('')
 const selectedCategory = ref('')
 const selectedLocation = ref('')
 const showAddModal = ref(false)
+const showBookModal = ref(false)
+const showSuccessModal = ref(false)
 
 const newEquipment = ref({
   name: '',
@@ -408,6 +704,16 @@ const newEquipment = ref({
   category: '',
   location: '',
   description: ''
+})
+
+const newBooking = ref<Omit<EquipmentBooking, 'id' | 'status' | 'createdAt'>>({
+  equipmentId: '',
+  title: '',
+  startDateTime: '',
+  endDateTime: '',
+  purpose: '',
+  contactPerson: '',
+  contactEmail: ''
 })
 
 const equipment = ref<Equipment[]>([
@@ -541,6 +847,9 @@ const equipmentStats = ref<EquipmentStats>({
   offline: 1
 })
 
+// Store for equipment bookings (simulated)
+const equipmentBookings = ref<EquipmentBooking[]>([])
+
 // Computed properties
 const filteredEquipment = computed(() => {
   return equipment.value.filter(item => {
@@ -555,6 +864,10 @@ const filteredEquipment = computed(() => {
     
     return matchesSearch && matchesStatus && matchesCategory && matchesLocation
   })
+})
+
+const availableEquipment = computed(() => {
+  return equipment.value.filter(item => item.status === 'available')
 })
 
 // Methods
@@ -715,6 +1028,167 @@ const addEquipment = () => {
   }
   
   showAddModal.value = false
+}
+
+// New booking functions
+const quickBookEquipment = (equipmentItem: Equipment) => {
+  if (equipmentItem.status !== 'available') return
+  
+  // Pre-fill the booking form with selected equipment
+  newBooking.value.equipmentId = equipmentItem.id
+  newBooking.value.title = `Book ${equipmentItem.name}`
+  
+  // Set default time (next hour for 2 hours)
+  const now = new Date()
+  const nextHour = new Date(now.getTime() + 60 * 60 * 1000)
+  nextHour.setMinutes(0)
+  nextHour.setSeconds(0)
+  
+  const twoHoursLater = new Date(nextHour.getTime() + 2 * 60 * 60 * 1000)
+  
+  newBooking.value.startDateTime = nextHour.toISOString().slice(0, 16)
+  newBooking.value.endDateTime = twoHoursLater.toISOString().slice(0, 16)
+  
+  showBookModal.value = true
+}
+
+const createBooking = () => {
+  // Validate booking
+  if (!newBooking.value.equipmentId || !newBooking.value.title || 
+      !newBooking.value.startDateTime || !newBooking.value.endDateTime ||
+      !newBooking.value.purpose || !newBooking.value.contactPerson || 
+      !newBooking.value.contactEmail) {
+    alert('Please fill in all required fields.')
+    return
+  }
+  
+  // Check if end time is after start time
+  if (new Date(newBooking.value.endDateTime) <= new Date(newBooking.value.startDateTime)) {
+    alert('End time must be after start time.')
+    return
+  }
+  
+  // Create booking record
+  const booking: EquipmentBooking = {
+    id: `EB-${String(equipmentBookings.value.length + 1).padStart(3, '0')}`,
+    ...newBooking.value,
+    status: 'pending',
+    createdAt: new Date().toISOString()
+  }
+  
+  equipmentBookings.value.push(booking)
+  
+  // Update equipment status to 'in-use' (simulating auto-approval for demo)
+  const equipmentItem = equipment.value.find(e => e.id === newBooking.value.equipmentId)
+  if (equipmentItem && equipmentItem.status === 'available') {
+    setEquipmentStatus(equipmentItem.id, 'in-use')
+  }
+  
+  // Reset form
+  newBooking.value = {
+    equipmentId: '',
+    title: '',
+    startDateTime: '',
+    endDateTime: '',
+    purpose: '',
+    contactPerson: '',
+    contactEmail: ''
+  }
+  
+  showBookModal.value = false
+  showSuccessModal.value = true
+  
+  console.log('Equipment booking created:', booking)
+}
+
+// Booking management functions
+const getEquipmentName = (equipmentId: string) => {
+  const item = equipment.value.find(e => e.id === equipmentId)
+  return item?.name || 'Unknown Equipment'
+}
+
+const getEquipmentModel = (equipmentId: string) => {
+  const item = equipment.value.find(e => e.id === equipmentId)
+  return item?.model || 'Unknown Model'
+}
+
+const formatDateTime = (dateTimeString: string) => {
+  if (!dateTimeString) return ''
+  const date = new Date(dateTimeString)
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getBookingStatusClass = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'approved':
+      return 'bg-green-100 text-green-800'
+    case 'rejected':
+      return 'bg-red-100 text-red-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
+}
+
+const getBookingStatusText = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return 'Pending'
+    case 'approved':
+      return 'Approved'
+    case 'rejected':
+      return 'Rejected'
+    default:
+      return 'Unknown'
+  }
+}
+
+const approveBooking = (bookingId: string) => {
+  const booking = equipmentBookings.value.find(b => b.id === bookingId)
+  if (booking) {
+    booking.status = 'approved'
+    // Update equipment status to in-use
+    const equipmentItem = equipment.value.find(e => e.id === booking.equipmentId)
+    if (equipmentItem && equipmentItem.status === 'available') {
+      setEquipmentStatus(equipmentItem.id, 'in-use')
+    }
+  }
+}
+
+const rejectBooking = (bookingId: string) => {
+  const booking = equipmentBookings.value.find(b => b.id === bookingId)
+  if (booking) {
+    booking.status = 'rejected'
+    // Keep equipment as available if rejected
+    const equipmentItem = equipment.value.find(e => e.id === booking.equipmentId)
+    if (equipmentItem && equipmentItem.status === 'in-use') {
+      setEquipmentStatus(equipmentItem.id, 'available')
+    }
+  }
+}
+
+const deleteBooking = (bookingId: string) => {
+  const bookingIndex = equipmentBookings.value.findIndex(b => b.id === bookingId)
+  if (bookingIndex !== -1) {
+    const booking = equipmentBookings.value[bookingIndex]
+    const confirmDelete = window.confirm(`Are you sure you want to delete booking "${booking.title}"?`)
+    if (confirmDelete) {
+      // If booking was approved and equipment is in-use, make it available again
+      if (booking.status === 'approved') {
+        const equipmentItem = equipment.value.find(e => e.id === booking.equipmentId)
+        if (equipmentItem && equipmentItem.status === 'in-use') {
+          setEquipmentStatus(equipmentItem.id, 'available')
+        }
+      }
+      equipmentBookings.value.splice(bookingIndex, 1)
+    }
+  }
 }
 
 onMounted(() => {
