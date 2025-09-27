@@ -1,11 +1,11 @@
-import type { User, Lab, BookingEvent, Equipment, EnvPoint, AccessLog, ApiResponse } from '@/types'
+import type { User, Lab, BookingEvent, Equipment, EnvPoint, AccessLog, ApiResponse, RegisterRequest, RegisterResponse } from '@/types'
 import { UserRole, Permission } from '@/types'
 import dayjs from 'dayjs'
 
 // Mock delay
 const delay = (ms: number = 500) => new Promise(resolve => setTimeout(resolve, ms))
 
-// Mock users for different roles - 使用英文角色
+// Mock users for different roles - using English roles
 const mockUsers: Record<string, User> = {
   'admin@example.com': {
     id: '1',
@@ -101,6 +101,74 @@ const mockUsers: Record<string, User> = {
       Permission.ENVIRONMENT_VIEW
     ],
     status: 'active'
+  }
+}
+
+// Function to generate default permissions by role
+const getDefaultPermissionsByRole = (role: UserRole): Permission[] => {
+  switch (role) {
+    case UserRole.SYSTEM_ADMIN:
+      return [
+        Permission.SYSTEM_SETTINGS,
+        Permission.USER_MANAGEMENT,
+        Permission.ROLE_MANAGEMENT,
+        Permission.LAB_CREATE,
+        Permission.LAB_EDIT,
+        Permission.LAB_DELETE,
+        Permission.LAB_VIEW,
+        Permission.BOOKING_CREATE,
+        Permission.BOOKING_APPROVE,
+        Permission.BOOKING_REJECT,
+        Permission.BOOKING_VIEW,
+        Permission.EQUIPMENT_MANAGE,
+        Permission.EQUIPMENT_VIEW,
+        Permission.ENVIRONMENT_CONFIG,
+        Permission.ENVIRONMENT_VIEW,
+        Permission.ACCESS_MANAGE,
+        Permission.ACCESS_VIEW,
+        Permission.REPORT_VIEW,
+        Permission.REPORT_EXPORT
+      ]
+    case UserRole.DEPARTMENT_ADMIN:
+      return [
+        Permission.LAB_CREATE,
+        Permission.LAB_EDIT,
+        Permission.LAB_VIEW,
+        Permission.BOOKING_APPROVE,
+        Permission.BOOKING_VIEW,
+        Permission.EQUIPMENT_MANAGE,
+        Permission.EQUIPMENT_VIEW,
+        Permission.ENVIRONMENT_VIEW,
+        Permission.ACCESS_MANAGE,
+        Permission.ACCESS_VIEW,
+        Permission.REPORT_VIEW
+      ]
+    case UserRole.TEACHER:
+      return [
+        Permission.LAB_VIEW,
+        Permission.BOOKING_CREATE,
+        Permission.BOOKING_APPROVE,
+        Permission.BOOKING_VIEW,
+        Permission.EQUIPMENT_VIEW,
+        Permission.ENVIRONMENT_VIEW,
+        Permission.ACCESS_VIEW
+      ]
+    case UserRole.STUDENT:
+      return [
+        Permission.LAB_VIEW,
+        Permission.BOOKING_CREATE,
+        Permission.BOOKING_VIEW,
+        Permission.EQUIPMENT_VIEW,
+        Permission.ENVIRONMENT_VIEW
+      ]
+    case UserRole.VISITOR:
+      return [
+        Permission.LAB_VIEW,
+        Permission.EQUIPMENT_VIEW,
+        Permission.ENVIRONMENT_VIEW
+      ]
+    default:
+      return []
   }
 }
 
@@ -289,6 +357,65 @@ export const mockApi = {
           token
         },
         message: 'Login successful'
+      }
+    },
+    
+    async register(data: RegisterRequest): Promise<ApiResponse<RegisterResponse>> {
+      console.log('📝 Mock Register - Input:', data)
+      
+      await delay(1000) // 模拟网络延迟
+      
+      // 检查邮箱是否已存在
+      if (mockUsers[data.email]) {
+        console.error('❌ Mock Register - Email already exists:', data.email)
+        const error = new Error('Email already exists')
+        ;(error as any).response = {
+          data: { message: 'Email already exists' }
+        }
+        throw error
+      }
+      
+      // 验证密码确认
+      if (data.password !== data.confirmPassword) {
+        console.error('❌ Mock Register - Password confirmation mismatch')
+        const error = new Error('Password confirmation does not match')
+        ;(error as any).response = {
+          data: { message: 'Password confirmation does not match' }
+        }
+        throw error
+      }
+      
+      // 创建新用户
+      const newUserId = (Object.keys(mockUsers).length + 1).toString()
+      const defaultRole = data.role || UserRole.STUDENT
+      const permissions = getDefaultPermissionsByRole(defaultRole)
+      
+      const newUser: User = {
+        id: newUserId,
+        name: data.name,
+        email: data.email,
+        avatarUrl: `https://images.unsplash.com/photo-${Date.now()}?w=64&h=64&fit=crop&crop=face`,
+        roles: [defaultRole],
+        permissions,
+        status: 'active'
+      }
+      
+      // 添加到mock用户列表
+      mockUsers[data.email] = newUser
+      
+      // 生成token
+      const token = 'mock-token-' + Date.now()
+      
+      console.log('✅ Mock Register - Success:', newUser.name)
+      
+      return {
+        code: 200,
+        data: {
+          user: newUser,
+          token,
+          requiresApproval: false // 在mock环境中不需要审批
+        },
+        message: 'Registration successful'
       }
     },
     
