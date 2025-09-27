@@ -212,82 +212,105 @@
       </div>
     </div>
 
-    <!-- Role Permissions Matrix -->
-    <div class="bg-white rounded-xl p-6 border border-gray-200">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Role Permissions</h2>
-        <p class="text-sm text-gray-500">Manage permissions for each role</p>
-      </div>
+<!-- Role Permissions Matrix -->
+<div class="bg-white rounded-xl p-6 border border-gray-200">
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-lg font-semibold text-gray-900">Role Permissions</h2>
+    <p class="text-sm text-gray-500">Manage permissions for each role</p>
+  </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead>
-            <tr class="border-b border-gray-200">
-              <th class="text-left py-3 px-4 font-medium text-gray-900">Permission</th>
-              <th class="text-center py-3 px-4 font-medium text-gray-900">SYS_ADMIN</th>
-              <th class="text-center py-3 px-4 font-medium text-gray-900">DEPT_ADMIN</th>
-              <th class="text-center py-3 px-4 font-medium text-gray-900">TEACHER</th>
-              <th class="text-center py-3 px-4 font-medium text-gray-900">STUDENT</th>
-              <th class="text-center py-3 px-4 font-medium text-gray-900">VISITOR</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr
-              v-for="permission in permissions"
-              :key="permission.id"
-              class="hover:bg-gray-50"
-            >
-              <td class="py-3 px-4">
-                <div>
-                  <p class="text-sm font-medium text-gray-900">{{ permission.name }}</p>
-                  <p class="text-xs text-gray-500">{{ permission.description }}</p>
-                </div>
-              </td>
-              <td class="py-3 px-4 text-center">
-                <input 
-                  v-model="permission.roles.SYS_ADMIN"
-                  type="checkbox" 
-                  class="rounded border-gray-300 text-primary-600"
-                  @change="updatePermission(permission.id, 'SYS_ADMIN', $event.target.checked)"
-                >
-              </td>
-              <td class="py-3 px-4 text-center">
-                <input 
-                  v-model="permission.roles.DEPT_ADMIN"
-                  type="checkbox" 
-                  class="rounded border-gray-300 text-primary-600"
-                  @change="updatePermission(permission.id, 'DEPT_ADMIN', $event.target.checked)"
-                >
-              </td>
-              <td class="py-3 px-4 text-center">
-                <input 
-                  v-model="permission.roles.TEACHER"
-                  type="checkbox" 
-                  class="rounded border-gray-300 text-primary-600"
-                  @change="updatePermission(permission.id, 'TEACHER', $event.target.checked)"
-                >
-              </td>
-              <td class="py-3 px-4 text-center">
-                <input 
-                  v-model="permission.roles.STUDENT"
-                  type="checkbox" 
-                  class="rounded border-gray-300 text-primary-600"
-                  @change="updatePermission(permission.id, 'STUDENT', $event.target.checked)"
-                >
-              </td>
-              <td class="py-3 px-4 text-center">
-                <input 
-                  v-model="permission.roles.VISITOR"
-                  type="checkbox" 
-                  class="rounded border-gray-300 text-primary-600"
-                  @change="updatePermission(permission.id, 'VISITOR', $event.target.checked)"
-                >
-              </td>
-            </tr>
-          </tbody>
-        </table>
+  <!-- 关键：给内容一个可垂直滚动的容器，让 sticky 只吸在这个容器底部 -->
+  <div class="max-h-[70vh] overflow-auto">
+    <!-- 横向仍可滚动，避免表格挤压 -->
+    <div class="min-w-full overflow-x-auto">
+      <table class="w-full">
+        <thead>
+          <tr class="border-b border-gray-200">
+            <th class="text-left py-3 px-4 font-medium text-gray-900">Permission</th>
+            <th class="text-center py-3 px-4 font-medium text-gray-900">SYS_ADMIN</th>
+            <th class="text-center py-3 px-4 font-medium text-gray-900">DEPT_ADMIN</th>
+            <th class="text-center py-3 px-4 font-medium text-gray-900">TEACHER</th>
+            <th class="text-center py-3 px-4 font-medium text-gray-900">STUDENT</th>
+            <th class="text-center py-3 px-4 font-medium text-gray-900">VISITOR</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200">
+          <tr
+            v-for="permission in permissions"
+            :key="permission.id"
+            class="hover:bg-gray-50"
+          >
+            <td class="py-3 px-4">
+              <div>
+                <p class="text-sm font-medium text-gray-900">{{ permission.name }}</p>
+                <p class="text-xs text-gray-500">{{ permission.description }}</p>
+              </div>
+            </td>
+            <td class="py-3 px-4 text-center">
+              <input
+                v-model="permission.roles.SYS_ADMIN"
+                type="checkbox"
+                class="rounded border-gray-300 text-primary-600"
+                @change="updatePermission(permission.id, 'SYS_ADMIN', $event.target.checked)"
+              >
+            </td>
+            <td class="py-3 px-4 text-center">
+              <input
+                v-model="permission.roles.DEPT_ADMIN"
+                type="checkbox"
+                class="rounded border-gray-300 text-primary-600"
+                @change="updatePermission(permission.id, 'DEPT_ADMIN', $event.target.checked)"
+              >
+            </td>
+            <td class="py-3 px-4 text-center">
+              <input
+                v-model="permission.roles.TEACHER"
+                type="checkbox"
+                class="rounded border-gray-300 text-primary-600"
+                @change="updatePermission(permission.id, 'TEACHER', $event.target.checked)"
+              >
+            </td>
+            <td class="py-3 px-4 text-center">
+              <input
+                v-model="permission.roles.STUDENT"
+                type="checkbox"
+                class="rounded border-gray-300 text-primary-600"
+                @change="updatePermission(permission.id, 'STUDENT', $event.target.checked)"
+              >
+            </td>
+            <td class="py-3 px-4 text-center">
+              <input
+                v-model="permission.roles.VISITOR"
+                type="checkbox"
+                class="rounded border-gray-300 text-primary-600"
+                @change="updatePermission(permission.id, 'VISITOR', $event.target.checked)"
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 吸附在“滚动容器”底部的操作栏（仅在卡片区域内可见） -->
+    <div class="sticky bottom-0 bg-white/90 backdrop-blur border-t border-gray-200 -mx-6 px-6 py-4">
+      <div class="flex items-center justify-end gap-3">
+        <span v-if="permSavedHint==='ok'" class="text-sm text-green-600">Saved</span>
+        <span v-else-if="permSavedHint==='err'" class="text-sm text-red-600">Save failed</span>
+
+        <button
+          class="bg-primary-600 text-white px-5 py-2 rounded-lg shadow hover:bg-primary-700
+                 disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="savingPerms || !permDirty"
+          @click="applyPermissions"
+        >
+          <span v-if="!savingPerms">APPLY</span>
+          <span v-else>Saving...</span>
+        </button>
       </div>
     </div>
+  </div>
+</div>
+
 
     <!-- Add User Modal -->
     <div 
@@ -423,6 +446,7 @@
       </div>
     </div>
   </div>
+
 </template>
 
 <script setup lang="ts">
@@ -843,9 +867,67 @@ const updatePermission = (permissionId: string, role: string, hasPermission: boo
   const permission = permissions.value.find(p => p.id === permissionId)
   if (permission) {
     permission.roles[role] = hasPermission
+    permDirty.value = true 
     console.log(`Updated ${permissionId} for ${role}: ${hasPermission}`)
   }
 }
+
+// === Apply 按钮相关状态 ===
+const permDirty = ref(false)         // 是否有未保存更改
+const savingPerms = ref(false)       // 是否在保存
+const permSavedHint = ref<'ok'|'err'|''>('')  // 右下角小提示
+
+// 构造要提交的 payload（两种后端风格，二选一即可）
+const buildPermissionsPayload = () => {
+  // 方案A：数组，每项一个权限 + 各角色布尔
+  const listA = permissions.value.map(p => ({
+    permissionId: p.id,
+    roles: { ...p.roles } // { SYS_ADMIN: true, ... }
+  }))
+
+  // 方案B：把勾选过的角色拍扁成数组（如果你后端喜欢这样）
+  const listB = permissions.value.map(p => ({
+    permissionId: p.id,
+    roles: Object.entries(p.roles)
+      .filter(([_, v]) => v)
+      .map(([k]) => k) // ['SYS_ADMIN','DEPT_ADMIN',...]
+  }))
+
+  // 返回你们后端喜欢的那种结构
+  return listA
+}
+
+const applyPermissions = async () => {
+  if (savingPerms.value || !permDirty.value) return
+  savingPerms.value = true
+  permSavedHint.value = ''
+
+  try {
+    // 1) 如果后端暂时没有，先本地“假保存”
+    // await new Promise(r => setTimeout(r, 600))
+
+    // 2) 有后端的话，用 fetch 直发（避免额外依赖）
+    const apiBase = import.meta.env.VITE_API_BASE || '/api'
+    const res = await fetch(`${apiBase}/admin/permissions/bulk`, {
+      method: 'PUT', // 或 POST，看你后端定义
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildPermissionsPayload())
+    })
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    // const data = await res.json() // 需要的话解析
+
+    permDirty.value = false
+    permSavedHint.value = 'ok'
+  } catch (e) {
+  //  console.error('Save permissions failed:', e)
+    permSavedHint.value = 'err'
+  } finally {
+    savingPerms.value = false
+    setTimeout(() => (permSavedHint.value = ''), 2000)
+  }
+}
+
 
 onMounted(() => {
   // Load user data
