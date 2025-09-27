@@ -6,17 +6,17 @@
         <h1 class="text-2xl font-bold text-gray-900">{{ $t('nav.users') }}</h1>
         <p class="text-gray-600 mt-1">Manage users and role permissions</p>
       </div>
-      
+
       <div class="flex items-center space-x-3">
-        <button 
+        <button
           class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
           @click="showAddUserModal = true"
         >
           <UserPlus class="w-4 h-4 inline mr-2" />
           Add User
         </button>
-        
-        <button 
+
+        <button
           class="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
           @click="showRoleModal = true"
         >
@@ -26,8 +26,8 @@
       </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+    <!-- Stats Cards (remove Active Users & Pending; only 3 cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
@@ -37,17 +37,7 @@
           <Users class="w-8 h-8 text-primary-600" />
         </div>
       </div>
-      
-      <div class="bg-white rounded-xl p-6 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Active Users</p>
-            <p class="text-2xl font-bold text-green-600">{{ userStats.active }}</p>
-          </div>
-          <CheckCircle class="w-8 h-8 text-green-600" />
-        </div>
-      </div>
-      
+
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
@@ -57,7 +47,7 @@
           <GraduationCap class="w-8 h-8 text-blue-600" />
         </div>
       </div>
-      
+
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
@@ -67,36 +57,26 @@
           <BookOpen class="w-8 h-8 text-purple-600" />
         </div>
       </div>
-      
-      <div class="bg-white rounded-xl p-6 border border-gray-200">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-gray-600">Pending</p>
-            <p class="text-2xl font-bold text-orange-600">{{ userStats.pending }}</p>
-          </div>
-          <Clock class="w-8 h-8 text-orange-600" />
-        </div>
-      </div>
     </div>
 
     <!-- User Management -->
     <div class="bg-white rounded-xl p-6 border border-gray-200">
       <div class="flex items-center justify-between mb-6">
         <h2 class="text-lg font-semibold text-gray-900">User Management</h2>
-        
+
         <div class="flex items-center space-x-3">
           <div class="relative">
             <Search class="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input 
+            <input
               v-model="searchQuery"
-              type="text" 
+              type="text"
               placeholder="Search users..."
               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm w-64"
             >
           </div>
-          
-          <select 
-            v-model="selectedRole" 
+
+          <select
+            v-model="selectedRole"
             class="border border-gray-300 rounded-lg px-3 py-2 text-sm"
           >
             <option value="">All Roles</option>
@@ -106,9 +86,9 @@
             <option value="STUDENT">Student</option>
             <option value="VISITOR">Visitor</option>
           </select>
-          
-          <select 
-            v-model="selectedStatus" 
+
+          <select
+            v-model="selectedStatus"
             class="border border-gray-300 rounded-lg px-3 py-2 text-sm"
           >
             <option value="">All Status</option>
@@ -119,7 +99,7 @@
         </div>
       </div>
 
-      <!-- Users Table -->
+      <!-- Users Table (remove Status & Last Login columns) -->
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead>
@@ -127,8 +107,6 @@
               <th class="text-left py-3 px-4 font-medium text-gray-900">User</th>
               <th class="text-left py-3 px-4 font-medium text-gray-900">Role</th>
               <th class="text-left py-3 px-4 font-medium text-gray-900">Department</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-900">Last Login</th>
               <th class="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
             </tr>
           </thead>
@@ -140,8 +118,8 @@
             >
               <td class="py-3 px-4">
                 <div class="flex items-center space-x-3">
-                  <img 
-                    :src="user.avatarUrl" 
+                  <img
+                    :src="user.avatarUrl"
                     :alt="user.name"
                     class="w-10 h-10 rounded-full object-cover"
                   />
@@ -151,54 +129,49 @@
                   </div>
                 </div>
               </td>
+
               <td class="py-3 px-4">
-                <span 
+                <span
                   class="px-2 py-1 text-xs font-medium rounded-full"
                   :class="getRoleClass(user.role)"
                 >
                   {{ getRoleText(user.role) }}
                 </span>
               </td>
+
               <td class="py-3 px-4 text-sm text-gray-900">{{ user.department }}</td>
-              <td class="py-3 px-4">
-                <span 
-                  class="px-2 py-1 text-xs font-medium rounded-full"
-                  :class="getStatusClass(user.status)"
-                >
-                  {{ getStatusText(user.status) }}
-                </span>
-              </td>
-              <td class="py-3 px-4 text-sm text-gray-900">{{ user.lastLogin }}</td>
+
               <td class="py-3 px-4">
                 <div class="flex items-center space-x-2">
-                  <button 
+                  <button
                     class="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                    @click="editUser(user.id)"
+                    @click="openEditUser(user)"
                   >
                     Edit
                   </button>
-                  <button 
+
+                  <button
                     v-if="user.status === 'active'"
                     class="text-xs text-orange-600 hover:text-orange-700 font-medium"
                     @click="deactivateUser(user.id)"
                   >
                     Deactivate
                   </button>
-                  <button 
+                  <button
                     v-else-if="user.status === 'inactive'"
                     class="text-xs text-green-600 hover:text-green-700 font-medium"
                     @click="activateUser(user.id)"
                   >
                     Activate
                   </button>
-                  <button 
+                  <button
                     v-if="user.status === 'pending'"
                     class="text-xs text-green-600 hover:text-green-700 font-medium"
                     @click="approveUser(user.id)"
                   >
                     Approve
                   </button>
-                  <button 
+                  <button
                     class="text-xs text-red-600 hover:text-red-700 font-medium"
                     @click="deleteUser(user.id)"
                   >
@@ -212,144 +185,140 @@
       </div>
     </div>
 
-<!-- Role Permissions Matrix -->
-<div class="bg-white rounded-xl p-6 border border-gray-200">
-  <div class="flex items-center justify-between mb-6">
-    <h2 class="text-lg font-semibold text-gray-900">Role Permissions</h2>
-    <p class="text-sm text-gray-500">Manage permissions for each role</p>
-  </div>
+    <!-- Role Permissions Matrix -->
+    <div class="bg-white rounded-xl p-6 border border-gray-200">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-semibold text-gray-900">Role Permissions</h2>
+        <p class="text-sm text-gray-500">Manage permissions for each role</p>
+      </div>
 
-  <!-- 关键：给内容一个可垂直滚动的容器，让 sticky 只吸在这个容器底部 -->
-  <div class="max-h-[70vh] overflow-auto">
-    <!-- 横向仍可滚动，避免表格挤压 -->
-    <div class="min-w-full overflow-x-auto">
-      <table class="w-full">
-        <thead>
-          <tr class="border-b border-gray-200">
-            <th class="text-left py-3 px-4 font-medium text-gray-900">Permission</th>
-            <th class="text-center py-3 px-4 font-medium text-gray-900">SYS_ADMIN</th>
-            <th class="text-center py-3 px-4 font-medium text-gray-900">DEPT_ADMIN</th>
-            <th class="text-center py-3 px-4 font-medium text-gray-900">TEACHER</th>
-            <th class="text-center py-3 px-4 font-medium text-gray-900">STUDENT</th>
-            <th class="text-center py-3 px-4 font-medium text-gray-900">VISITOR</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          <tr
-            v-for="permission in permissions"
-            :key="permission.id"
-            class="hover:bg-gray-50"
-          >
-            <td class="py-3 px-4">
-              <div>
-                <p class="text-sm font-medium text-gray-900">{{ permission.name }}</p>
-                <p class="text-xs text-gray-500">{{ permission.description }}</p>
-              </div>
-            </td>
-            <td class="py-3 px-4 text-center">
-              <input
-                v-model="permission.roles.SYS_ADMIN"
-                type="checkbox"
-                class="rounded border-gray-300 text-primary-600"
-                @change="updatePermission(permission.id, 'SYS_ADMIN', $event.target.checked)"
+      <div class="max-h-[70vh] overflow-auto">
+        <div class="min-w-full overflow-x-auto">
+          <table class="w-full">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th class="text-left py-3 px-4 font-medium text-gray-900">Permission</th>
+                <th class="text-center py-3 px-4 font-medium text-gray-900">SYS_ADMIN</th>
+                <th class="text-center py-3 px-4 font-medium text-gray-900">DEPT_ADMIN</th>
+                <th class="text-center py-3 px-4 font-medium text-gray-900">TEACHER</th>
+                <th class="text-center py-3 px-4 font-medium text-gray-900">STUDENT</th>
+                <th class="text-center py-3 px-4 font-medium text-gray-900">VISITOR</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr
+                v-for="permission in permissions"
+                :key="permission.id"
+                class="hover:bg-gray-50"
               >
-            </td>
-            <td class="py-3 px-4 text-center">
-              <input
-                v-model="permission.roles.DEPT_ADMIN"
-                type="checkbox"
-                class="rounded border-gray-300 text-primary-600"
-                @change="updatePermission(permission.id, 'DEPT_ADMIN', $event.target.checked)"
-              >
-            </td>
-            <td class="py-3 px-4 text-center">
-              <input
-                v-model="permission.roles.TEACHER"
-                type="checkbox"
-                class="rounded border-gray-300 text-primary-600"
-                @change="updatePermission(permission.id, 'TEACHER', $event.target.checked)"
-              >
-            </td>
-            <td class="py-3 px-4 text-center">
-              <input
-                v-model="permission.roles.STUDENT"
-                type="checkbox"
-                class="rounded border-gray-300 text-primary-600"
-                @change="updatePermission(permission.id, 'STUDENT', $event.target.checked)"
-              >
-            </td>
-            <td class="py-3 px-4 text-center">
-              <input
-                v-model="permission.roles.VISITOR"
-                type="checkbox"
-                class="rounded border-gray-300 text-primary-600"
-                @change="updatePermission(permission.id, 'VISITOR', $event.target.checked)"
-              >
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+                <td class="py-3 px-4">
+                  <div>
+                    <p class="text-sm font-medium text-gray-900">{{ permission.name }}</p>
+                    <p class="text-xs text-gray-500">{{ permission.description }}</p>
+                  </div>
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <input
+                    v-model="permission.roles.SYS_ADMIN"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-primary-600"
+                    @change="updatePermission(permission.id, 'SYS_ADMIN', $event.target.checked)"
+                  >
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <input
+                    v-model="permission.roles.DEPT_ADMIN"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-primary-600"
+                    @change="updatePermission(permission.id, 'DEPT_ADMIN', $event.target.checked)"
+                  >
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <input
+                    v-model="permission.roles.TEACHER"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-primary-600"
+                    @change="updatePermission(permission.id, 'TEACHER', $event.target.checked)"
+                  >
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <input
+                    v-model="permission.roles.STUDENT"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-primary-600"
+                    @change="updatePermission(permission.id, 'STUDENT', $event.target.checked)"
+                  >
+                </td>
+                <td class="py-3 px-4 text-center">
+                  <input
+                    v-model="permission.roles.VISITOR"
+                    type="checkbox"
+                    class="rounded border-gray-300 text-primary-600"
+                    @change="updatePermission(permission.id, 'VISITOR', $event.target.checked)"
+                  >
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-    <!-- 吸附在“滚动容器”底部的操作栏（仅在卡片区域内可见） -->
-    <div class="sticky bottom-0 bg-white/90 backdrop-blur border-t border-gray-200 -mx-6 px-6 py-4">
-      <div class="flex items-center justify-end gap-3">
-        <span v-if="permSavedHint==='ok'" class="text-sm text-green-600">Saved</span>
-        <span v-else-if="permSavedHint==='err'" class="text-sm text-red-600">Save failed</span>
+        <div class="sticky bottom-0 bg-white/90 backdrop-blur border-t border-gray-200 -mx-6 px-6 py-4">
+          <div class="flex items-center justify-end gap-3">
+            <span v-if="permSavedHint==='ok'" class="text-sm text-green-600">Saved</span>
+            <span v-else-if="permSavedHint==='err'" class="text-sm text-red-600">Save failed</span>
 
-        <button
-          class="bg-primary-600 text-white px-5 py-2 rounded-lg shadow hover:bg-primary-700
-                 disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="savingPerms || !permDirty"
-          @click="applyPermissions"
-        >
-          <span v-if="!savingPerms">APPLY</span>
-          <span v-else>Saving...</span>
-        </button>
+            <button
+              class="bg-primary-600 text-white px-5 py-2 rounded-lg shadow hover:bg-primary-700
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="savingPerms || !permDirty"
+              @click="applyPermissions"
+            >
+              <span v-if="!savingPerms">APPLY</span>
+              <span v-else>Saving...</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
-
 
     <!-- Add User Modal -->
-    <div 
+    <div
       v-if="showAddUserModal"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       @click="showAddUserModal = false"
     >
-      <div 
+      <div
         class="bg-white rounded-xl p-6 w-full max-w-md mx-4"
         @click.stop
       >
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Add New User</h3>
-        
+
         <form @submit.prevent="addUser" class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-            <input 
+            <input
               v-model="userForm.name"
-              type="text" 
+              type="text"
               class="w-full border border-gray-300 rounded-lg px-3 py-2"
               placeholder="Enter full name"
               required
             >
           </div>
-          
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input 
+            <input
               v-model="userForm.email"
-              type="email" 
+              type="email"
               class="w-full border border-gray-300 rounded-lg px-3 py-2"
               placeholder="Enter email address"
               required
             >
           </div>
-          
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
-            <select 
+            <select
               v-model="userForm.role"
               class="w-full border border-gray-300 rounded-lg px-3 py-2"
               required
@@ -362,10 +331,10 @@
               <option value="VISITOR">Visitor</option>
             </select>
           </div>
-          
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
-            <select 
+            <select
               v-model="userForm.department"
               class="w-full border border-gray-300 rounded-lg px-3 py-2"
               required
@@ -378,15 +347,15 @@
               <option value="Engineering">Engineering</option>
             </select>
           </div>
-          
+
           <div class="flex items-center space-x-3 pt-4">
-            <button 
+            <button
               type="submit"
               class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
             >
               Add User
             </button>
-            <button 
+            <button
               type="button"
               class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               @click="showAddUserModal = false"
@@ -399,17 +368,17 @@
     </div>
 
     <!-- Role Management Modal -->
-    <div 
+    <div
       v-if="showRoleModal"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       @click="showRoleModal = false"
     >
-      <div 
+      <div
         class="bg-white rounded-xl p-6 w-full max-w-4xl mx-4 max-h-[90vh] overflow-y-auto"
         @click.stop
       >
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Role Management</h3>
-        
+
         <div class="space-y-6">
           <div
             v-for="role in roleDetails"
@@ -420,9 +389,9 @@
               <h4 class="text-base font-medium text-gray-900">{{ role.name }}</h4>
               <span class="text-sm text-gray-500">{{ role.userCount }} users</span>
             </div>
-            
+
             <p class="text-sm text-gray-600 mb-3">{{ role.description }}</p>
-            
+
             <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
               <span
                 v-for="permission in role.permissions"
@@ -434,9 +403,9 @@
             </div>
           </div>
         </div>
-        
+
         <div class="flex justify-end mt-6">
-          <button 
+          <button
             class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
             @click="showRoleModal = false"
           >
@@ -447,7 +416,92 @@
     </div>
   </div>
 
+  <!-- Edit User Modal -->
+  <div
+    v-if="showEditUserModal"
+    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    @click="closeEditUser"
+  >
+    <div
+      class="bg-white rounded-xl p-6 w-full max-w-md mx-4"
+      @click.stop
+    >
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">Edit User</h3>
+
+      <form @submit.prevent="saveEditUser" class="space-y-4">
+        <!-- readonly info -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <input
+            v-model="editForm.name"
+            type="text"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50"
+            readonly
+          >
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+          <input
+            v-model="editForm.email"
+            type="email"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 bg-gray-50"
+            readonly
+          >
+        </div>
+
+        <!-- editable -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+          <select
+            v-model="editForm.role"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2"
+            required
+          >
+            <option value="SYS_ADMIN">System Admin</option>
+            <option value="DEPT_ADMIN">Department Admin</option>
+            <option value="TEACHER">Teacher</option>
+            <option value="STUDENT">Student</option>
+            <option value="VISITOR">Visitor</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Department</label>
+          <select
+            v-model="editForm.department"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2"
+            required
+          >
+            <option value="Computer Science">Computer Science</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Data Science">Data Science</option>
+            <option value="Cybersecurity">Cybersecurity</option>
+            <option value="Engineering">Engineering</option>
+            <option value="External">External</option>
+          </select>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-4">
+          <button
+            type="submit"
+            class="bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+          >
+            Save Changes
+          </button>
+          <button
+            type="button"
+            class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+            @click="closeEditUser"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </template>
+
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
@@ -665,6 +719,63 @@ const permissions = ref([
     }
   }
 ])
+
+// === Edit User modal state ===
+const showEditUserModal = ref(false)
+const editForm = ref({
+  id: '',
+  name: '',
+  email: '',
+  role: '',
+  department: ''
+})
+
+const openEditUser = (u: any) => {
+  // 复制一份到表单里
+  editForm.value = {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    department: u.department
+  }
+  showEditUserModal.value = true
+}
+
+const closeEditUser = () => {
+  showEditUserModal.value = false
+}
+
+// 保存：本地更新（如有后端，换成 API 调用再刷新本地）
+const saveEditUser = async () => {
+  // 如果你有后端，可以改成：
+  // await api.users.update(editForm.value.id, { role: editForm.value.role, department: editForm.value.department })
+
+  const idx = users.value.findIndex(u => u.id === editForm.value.id)
+  if (idx !== -1) {
+    // 更新角色统计（可选）
+    const old = users.value[idx]
+    const oldRole = old.role
+    const newRole = editForm.value.role
+
+    users.value[idx] = {
+      ...old,
+      role: newRole,
+      department: editForm.value.department
+    }
+
+    // 同步统计数字（保持你原有统计逻辑风格）
+    if (oldRole !== newRole) {
+      if (oldRole === 'TEACHER') userStats.value.teachers--
+      if (oldRole === 'STUDENT') userStats.value.students--
+      if (newRole === 'TEACHER') userStats.value.teachers++
+      if (newRole === 'STUDENT') userStats.value.students++
+    }
+  }
+
+  closeEditUser()
+}
+
 
 const roleDetails = ref([
   {
