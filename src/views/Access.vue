@@ -3,25 +3,27 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ $t('nav.access') }}</h1>
-        <p class="text-gray-600 mt-1">Manage laboratory access control and permissions</p>
+        <h1 class="text-2xl font-bold text-gray-900">Project Management</h1>
+        <p class="text-gray-600 mt-1">Manage experimental projects from application to archive</p>
       </div>
       
       <div class="flex items-center space-x-3">
         <button 
+          v-if="canCreateProject"
           class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
-          @click="showGrantModal = true"
+          @click="showCreateModal = true"
         >
-          <UserPlus class="w-4 h-4 inline mr-2" />
-          Grant Access
+          <Plus class="w-4 h-4 inline mr-2" />
+          New Project
         </button>
         
         <button 
+          v-if="canExportData"
           class="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
-          @click="exportLogs"
+          @click="exportProjects"
         >
           <Download class="w-4 h-4 inline mr-2" />
-          Export Logs
+          Export
         </button>
       </div>
     </div>
@@ -31,180 +33,73 @@
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Today's Entries</p>
-            <p class="text-2xl font-bold text-gray-900">{{ accessStats.todayEntries }}</p>
+            <p class="text-sm font-medium text-gray-600">Total Projects</p>
+            <p class="text-2xl font-bold text-gray-900">{{ projectStats.total }}</p>
           </div>
-          <LogIn class="w-8 h-8 text-green-600" />
+          <FileText class="w-8 h-8 text-blue-600" />
         </div>
       </div>
       
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Active Users</p>
-            <p class="text-2xl font-bold text-blue-600">{{ accessStats.activeUsers }}</p>
+            <p class="text-sm font-medium text-gray-600">In Progress</p>
+            <p class="text-2xl font-bold text-blue-600">{{ projectStats.inProgress }}</p>
           </div>
-          <Users class="w-8 h-8 text-blue-600" />
+          <Clock class="w-8 h-8 text-blue-600" />
         </div>
       </div>
       
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Access Violations</p>
-            <p class="text-2xl font-bold text-red-600">{{ accessStats.violations }}</p>
+            <p class="text-sm font-medium text-gray-600">Pending Approval</p>
+            <p class="text-2xl font-bold text-yellow-600">{{ projectStats.pending }}</p>
           </div>
-          <AlertTriangle class="w-8 h-8 text-red-600" />
+          <AlertCircle class="w-8 h-8 text-yellow-600" />
         </div>
       </div>
       
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Average Duration</p>
-            <p class="text-2xl font-bold text-purple-600">{{ accessStats.avgDuration }}h</p>
+            <p class="text-sm font-medium text-gray-600">Completed</p>
+            <p class="text-2xl font-bold text-green-600">{{ projectStats.completed }}</p>
           </div>
-          <Clock class="w-8 h-8 text-purple-600" />
+          <CheckCircle class="w-8 h-8 text-green-600" />
         </div>
       </div>
     </div>
 
-    <!-- Access Rules Management -->
+    <!-- Filter and Search -->
     <div class="bg-white rounded-xl p-6 border border-gray-200">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Access Rules</h2>
-        <button 
-          class="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors"
-          @click="showRuleModal = true"
-        >
-          <Plus class="w-4 h-4 inline mr-2" />
-          Add Rule
-        </button>
-      </div>
-
-      <div class="space-y-4">
-        <div
-          v-for="rule in accessRules"
-          :key="rule.id"
-          class="border border-gray-200 rounded-xl p-4"
-        >
-          <div class="flex items-center justify-between">
-            <div class="flex-1">
-              <div class="flex items-center space-x-3 mb-2">
-                <h3 class="text-base font-medium text-gray-900">{{ rule.name }}</h3>
-                <span 
-                  class="px-2 py-1 text-xs font-medium rounded-full"
-                  :class="rule.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'"
-                >
-                  {{ rule.enabled ? 'Active' : 'Inactive' }}
-                </span>
-              </div>
-              
-              <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
-                <div>
-                  <span class="font-medium">Target:</span>
-                  <span class="ml-1">{{ rule.target.type === 'role' ? `Role: ${rule.target.value}` : `User: ${rule.target.value}` }}</span>
-                </div>
-                <div>
-                  <span class="font-medium">Laboratory:</span>
-                  <span class="ml-1">{{ rule.laboratory || 'All Labs' }}</span>
-                </div>
-                <div>
-                  <span class="font-medium">Time:</span>
-                  <span class="ml-1">{{ rule.timeSlot }}</span>
-                </div>
-                <div>
-                  <span class="font-medium">Days:</span>
-                  <span class="ml-1">{{ rule.weekdays.join(', ') }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="flex items-center space-x-2">
-              <button 
-                class="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
-                @click="editRule(rule.id)"
-              >
-                Edit
-              </button>
-              <button 
-                class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
-                @click="deleteRule(rule.id)"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+      <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+        <div class="flex-1">
+          <input 
+            v-model="searchQuery"
+            type="text" 
+            placeholder="Search projects by title, description, or principal investigator..."
+            class="w-full border border-gray-300 rounded-lg px-4 py-2"
+          >
         </div>
-      </div>
-    </div>
-
-    <!-- Real-time Access Status -->
-    <div class="bg-white rounded-xl p-6 border border-gray-200">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Current Lab Occupancy</h2>
-        <div class="flex items-center text-sm text-gray-500">
-          <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-          Live Status
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div
-          v-for="lab in currentOccupancy"
-          :key="lab.id"
-          class="border border-gray-200 rounded-xl p-4"
-        >
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-base font-medium text-gray-900">{{ lab.name }}</h3>
-            <span 
-              class="px-2 py-1 text-xs font-medium rounded-full"
-              :class="getOccupancyClass(lab.occupancy, lab.capacity)"
-            >
-              {{ lab.occupancy }}/{{ lab.capacity }}
-            </span>
-          </div>
-          
-          <div class="space-y-2">
-            <div 
-              v-for="user in lab.currentUsers" 
-              :key="user.id"
-              class="flex items-center space-x-3 text-sm"
-            >
-              <img 
-                :src="user.avatarUrl" 
-                :alt="user.name"
-                class="w-6 h-6 rounded-full object-cover"
-              />
-              <div class="flex-1">
-                <span class="text-gray-900">{{ user.name }}</span>
-                <span class="text-gray-500 ml-2">{{ user.role }}</span>
-              </div>
-              <span class="text-xs text-gray-400">{{ user.entryTime }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Access Logs -->
-    <div class="bg-white rounded-xl p-6 border border-gray-200">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-lg font-semibold text-gray-900">Recent Access Logs</h2>
+        
         <div class="flex items-center space-x-3">
           <select 
-            v-model="selectedLogFilter" 
-            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            v-model="selectedStatus" 
+            class="border border-gray-300 rounded-lg px-3 py-2 text-sm"
           >
-            <option value="">All Events</option>
-            <option value="entry">Entry Only</option>
-            <option value="exit">Exit Only</option>
-            <option value="violation">Violations</option>
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="approved">Approved</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="archived">Archived</option>
+            <option value="rejected">Rejected</option>
           </select>
           
           <select 
-            v-model="selectedLabFilter" 
-            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            v-model="selectedLaboratory" 
+            class="border border-gray-300 rounded-lg px-3 py-2 text-sm"
           >
             <option value="">All Labs</option>
             <option 
@@ -215,303 +110,254 @@
               {{ lab.name }}
             </option>
           </select>
+          
+          <select 
+            v-model="selectedPriority" 
+            class="border border-gray-300 rounded-lg px-3 py-2 text-sm"
+          >
+            <option value="">All Priorities</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
         </div>
       </div>
+    </div>
 
-      <div class="overflow-x-auto">
-        <table class="w-full">
-          <thead>
-            <tr class="border-b border-gray-200">
-              <th class="text-left py-3 px-4 font-medium text-gray-900">User</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-900">Laboratory</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-900">Action</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-900">Time</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-              <th class="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="divide-y divide-gray-200">
-            <tr
-              v-for="log in filteredAccessLogs"
-              :key="log.id"
-              class="hover:bg-gray-50"
-            >
-              <td class="py-3 px-4">
-                <div class="flex items-center space-x-3">
-                  <img 
-                    :src="log.user.avatarUrl" 
-                    :alt="log.user.name"
-                    class="w-8 h-8 rounded-full object-cover"
-                  />
-                  <div>
-                    <p class="text-sm font-medium text-gray-900">{{ log.user.name }}</p>
-                    <p class="text-xs text-gray-500">{{ log.user.role }}</p>
+    <!-- Projects List -->
+    <div class="space-y-4">
+      <div
+        v-for="project in filteredProjects"
+        :key="project.id"
+        class="bg-white rounded-xl p-6 border border-gray-200 hover:shadow-md transition-shadow"
+      >
+        <div class="flex items-start justify-between">
+          <div class="flex-1">
+            <div class="flex items-center space-x-3 mb-3">
+              <h3 class="text-lg font-semibold text-gray-900">{{ project.title }}</h3>
+              <span 
+                class="px-2 py-1 text-xs font-medium rounded-full"
+                :class="getStatusClass(project.status)"
+              >
+                {{ getStatusText(project.status) }}
+              </span>
+              <span 
+                class="px-2 py-1 text-xs font-medium rounded-full"
+                :class="getPriorityClass(project.priority)"
+              >
+                {{ project.priority.toUpperCase() }}
+              </span>
+            </div>
+            
+            <p class="text-gray-600 mb-4 line-clamp-2">{{ project.description }}</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm text-gray-600">
+              <div>
+                <span class="font-medium">Principal Investigator:</span>
+                <span class="ml-1">{{ project.principalInvestigator.name }}</span>
+              </div>
+              
+              <div>
+                <span class="font-medium">Laboratory:</span>
+                <span class="ml-1">{{ project.laboratory || 'Not assigned' }}</span>
+              </div>
+              
+              <div>
+                <span class="font-medium">Duration:</span>
+                <span class="ml-1">{{ project.startDate }} - {{ project.endDate }}</span>
+              </div>
+              
+              <div>
+                <span class="font-medium">Progress:</span>
+                <div class="flex items-center space-x-2 mt-1">
+                  <div class="flex-1 bg-gray-200 rounded-full h-2">
+                    <div 
+                      class="bg-blue-600 h-2 rounded-full transition-all"
+                      :style="{ width: project.progress + '%' }"
+                    ></div>
                   </div>
+                  <span class="text-xs">{{ project.progress }}%</span>
                 </div>
-              </td>
-              <td class="py-3 px-4 text-sm text-gray-900">{{ log.laboratory }}</td>
-              <td class="py-3 px-4">
-                <div class="flex items-center space-x-2">
+              </div>
+            </div>
+            
+            <!-- Project Phases -->
+            <div class="mt-4">
+              <div class="flex items-center space-x-4">
+                <div 
+                  v-for="phase in projectPhases"
+                  :key="phase.key"
+                  class="flex items-center space-x-2"
+                >
                   <component 
-                    :is="getActionIcon(log.action)" 
+                    :is="phase.icon" 
                     class="w-4 h-4"
-                    :class="getActionColor(log.action)"
+                    :class="getPhaseClass(project, phase.key)"
                   />
-                  <span class="text-sm text-gray-900">{{ log.action }}</span>
+                  <span 
+                    class="text-xs"
+                    :class="getPhaseTextClass(project, phase.key)"
+                  >
+                    {{ phase.label }}
+                  </span>
                 </div>
-              </td>
-              <td class="py-3 px-4 text-sm text-gray-900">{{ log.timestamp }}</td>
-              <td class="py-3 px-4">
-                <span 
-                  class="px-2 py-1 text-xs font-medium rounded-full"
-                  :class="getStatusClass(log.status)"
-                >
-                  {{ log.status }}
-                </span>
-              </td>
-              <td class="py-3 px-4">
-                <button 
-                  v-if="log.status === 'violation'"
-                  class="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                  @click="reviewViolation(log.id)"
-                >
-                  Review
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Grant Access Modal -->
-    <div 
-      v-if="showGrantModal"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      @click="showGrantModal = false"
-    >
-      <div 
-        class="bg-white rounded-xl p-6 w-full max-w-md mx-4"
-        @click.stop
-      >
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Grant Access Permission</h3>
-        
-        <form @submit.prevent="grantAccess" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Target Type</label>
-            <select 
-              v-model="grantForm.targetType"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2"
-              required
-            >
-              <option value="user">Specific User</option>
-              <option value="role">User Role</option>
-            </select>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
-              {{ grantForm.targetType === 'user' ? 'Select User' : 'Select Role' }}
-            </label>
-            <select 
-              v-model="grantForm.target"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2"
-              required
-            >
-              <option value="">Choose...</option>
-              <option 
-                v-if="grantForm.targetType === 'role'"
-                v-for="role in availableRoles" 
-                :key="role" 
-                :value="role"
-              >
-                {{ role }}
-              </option>
-              <option 
-                v-if="grantForm.targetType === 'user'"
-                v-for="user in availableUsers" 
-                :key="user.id" 
-                :value="user.name"
-              >
-                {{ user.name }}
-              </option>
-            </select>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Laboratory</label>
-            <select 
-              v-model="grantForm.laboratory"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2"
-            >
-              <option value="">All Laboratories</option>
-              <option 
-                v-for="lab in laboratories" 
-                :key="lab.id" 
-                :value="lab.name"
-              >
-                {{ lab.name }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-              <input 
-                v-model="grantForm.startTime"
-                type="time" 
-                class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                required
-              >
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-              <input 
-                v-model="grantForm.endTime"
-                type="time" 
-                class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                required
-              >
+              </div>
             </div>
           </div>
           
-          <div class="flex items-center space-x-3 pt-4">
+          <div class="flex items-center space-x-2 ml-4">
             <button 
-              type="submit"
-              class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
+              class="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors"
+              @click="viewProject(project.id)"
             >
-              Grant Access
+              View Details
             </button>
+            
             <button 
-              type="button"
-              class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-              @click="showGrantModal = false"
+              v-if="canEditProject(project)"
+              class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors"
+              @click="editProject(project.id)"
             >
-              Cancel
+              Edit
+            </button>
+            
+            <button 
+              v-if="canApproveProject(project)"
+              class="px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-100 rounded-lg hover:bg-purple-200 transition-colors"
+              @click="showApprovalModal(project)"
+            >
+              Review
+            </button>
+            
+            <button 
+              v-if="canDeleteProject(project)"
+              class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
+              @click="deleteProject(project.id)"
+            >
+              Delete
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
 
-    <!-- Add Rule Modal -->
+    <!-- Create Project Modal -->
     <div 
-      v-if="showRuleModal"
+      v-if="showCreateModal"
       class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      @click="showRuleModal = false"
+      @click="showCreateModal = false"
     >
       <div 
-        class="bg-white rounded-xl p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto"
+        class="bg-white rounded-xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
         @click.stop
       >
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Add Access Rule</h3>
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Create New Project</h3>
         
-        <form @submit.prevent="addAccessRule" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Rule Name</label>
-            <input 
-              v-model="ruleForm.name"
-              type="text" 
-              class="w-full border border-gray-300 rounded-lg px-3 py-2"
-              placeholder="Enter rule name"
-              required
-            >
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4">
+        <form @submit.prevent="createProject" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Project Title</label>
+              <input 
+                v-model="createForm.title"
+                type="text" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                placeholder="Enter project title"
+                required
+              >
+            </div>
+            
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <textarea 
+                v-model="createForm.description"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                rows="3"
+                placeholder="Describe your project objectives and methodology"
+                required
+              ></textarea>
+            </div>
+            
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Target Type</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Laboratory</label>
               <select 
-                v-model="ruleForm.targetType"
+                v-model="createForm.laboratory"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                required
               >
-                <option value="role">Role</option>
-                <option value="user">User</option>
+                <option value="">Select Laboratory</option>
+                <option 
+                  v-for="lab in laboratories" 
+                  :key="lab.id" 
+                  :value="lab.name"
+                >
+                  {{ lab.name }}
+                </option>
               </select>
             </div>
+            
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Target</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Priority</label>
               <select 
-                v-model="ruleForm.target"
+                v-model="createForm.priority"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2"
                 required
               >
-                <option value="">Select...</option>
-                <option 
-                  v-if="ruleForm.targetType === 'role'"
-                  v-for="role in availableRoles" 
-                  :key="role" 
-                  :value="role"
-                >
-                  {{ role }}
-                </option>
-                <option 
-                  v-if="ruleForm.targetType === 'user'"
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+              <input 
+                v-model="createForm.startDate"
+                type="date" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                required
+              >
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+              <input 
+                v-model="createForm.endDate"
+                type="date" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                required
+              >
+            </div>
+            
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Team Members</label>
+              <div class="space-y-2 max-h-32 overflow-y-auto">
+                <label 
                   v-for="user in availableUsers" 
-                  :key="user.id" 
-                  :value="user.name"
+                  :key="user.id"
+                  class="flex items-center space-x-3 p-2 border border-gray-200 rounded-lg hover:bg-gray-50"
                 >
-                  {{ user.name }}
-                </option>
-              </select>
+                  <input 
+                    v-model="createForm.teamMembers"
+                    type="checkbox" 
+                    :value="user.id"
+                    class="rounded border-gray-300"
+                  >
+                  <div class="flex-1">
+                    <span class="text-sm font-medium">{{ user.name }}</span>
+                    <span class="text-xs text-gray-500 ml-2">({{ user.role }})</span>
+                  </div>
+                </label>
+              </div>
             </div>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Laboratory</label>
-            <select 
-              v-model="ruleForm.laboratory"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2"
-            >
-              <option value="">All Laboratories</option>
-              <option 
-                v-for="lab in laboratories" 
-                :key="lab.id" 
-                :value="lab.name"
-              >
-                {{ lab.name }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Start Time</label>
-              <input 
-                v-model="ruleForm.startTime"
-                type="time" 
+            
+            <div class="md:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Research Objectives</label>
+              <textarea 
+                v-model="createForm.objectives"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                required
-              >
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">End Time</label>
-              <input 
-                v-model="ruleForm.endTime"
-                type="time" 
-                class="w-full border border-gray-300 rounded-lg px-3 py-2"
-                required
-              >
-            </div>
-          </div>
-          
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Weekdays</label>
-            <div class="grid grid-cols-4 gap-2">
-              <label 
-                v-for="day in weekdays" 
-                :key="day.value"
-                class="flex items-center space-x-2"
-              >
-                <input 
-                  v-model="ruleForm.weekdays"
-                  type="checkbox" 
-                  :value="day.value"
-                  class="rounded border-gray-300"
-                >
-                <span class="text-sm text-gray-700">{{ day.label }}</span>
-              </label>
+                rows="3"
+                placeholder="List the main research objectives and expected outcomes"
+              ></textarea>
             </div>
           </div>
           
@@ -520,17 +366,71 @@
               type="submit"
               class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
             >
-              Add Rule
+              Create Project
             </button>
             <button 
               type="button"
               class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-              @click="showRuleModal = false"
+              @click="showCreateModal = false"
             >
               Cancel
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Approval Modal -->
+    <div 
+      v-if="showApproval"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click="showApproval = false"
+    >
+      <div 
+        class="bg-white rounded-xl p-6 w-full max-w-lg mx-4"
+        @click.stop
+      >
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">Review Project Application</h3>
+        
+        <div class="space-y-4">
+          <div>
+            <h4 class="font-medium text-gray-900">{{ selectedProject?.title }}</h4>
+            <p class="text-sm text-gray-600 mt-1">{{ selectedProject?.description }}</p>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Review Comments</label>
+            <textarea 
+              v-model="approvalForm.comments"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              rows="3"
+              placeholder="Add review comments (optional)"
+            ></textarea>
+          </div>
+          
+          <div class="flex items-center space-x-3 pt-4">
+            <button 
+              class="bg-green-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-600 transition-colors"
+              @click="approveProject"
+            >
+              <CheckCircle class="w-4 h-4 inline mr-2" />
+              Approve
+            </button>
+            <button 
+              class="bg-red-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-red-600 transition-colors"
+              @click="rejectProject"
+            >
+              <XCircle class="w-4 h-4 inline mr-2" />
+              Reject
+            </button>
+            <button 
+              class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              @click="showApproval = false"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -539,378 +439,436 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { 
-  KeyRound, 
-  UserPlus, 
+  Plus, 
   Download, 
-  LogIn, 
-  Users, 
-  AlertTriangle, 
+  FileText, 
   Clock, 
-  Plus,
-  LogOut,
-  ShieldCheck
+  AlertCircle, 
+  CheckCircle, 
+  XCircle,
+  FileCheck,
+  FlaskConical,
+  BookOpen,
+  Archive
 } from 'lucide-vue-next'
 
+// Define interfaces
+interface User {
+  id: string
+  name: string
+  role: string
+  email: string
+}
+
+interface Project {
+  id: string
+  title: string
+  description: string
+  status: 'pending' | 'approved' | 'in_progress' | 'completed' | 'archived' | 'rejected'
+  priority: 'low' | 'medium' | 'high'
+  principalInvestigator: User
+  teamMembers: string[]
+  laboratory: string
+  startDate: string
+  endDate: string
+  progress: number
+  phases: {
+    application: boolean
+    design: boolean
+    execution: boolean
+    archive: boolean
+  }
+  objectives: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface ProjectPhase {
+  key: string
+  label: string
+  icon: any
+}
+
+interface Lab {
+  id: string
+  name: string
+}
+
+// Mock current user role - in real app this would come from auth store
+const currentUserRole = ref('TEACHER') // Could be SYS_ADMIN, DEPT_ADMIN, TEACHER, STUDENT, VISITOR
+
 // Reactive data
-const showGrantModal = ref(false)
-const showRuleModal = ref(false)
-const selectedLogFilter = ref('')
-const selectedLabFilter = ref('')
+const showCreateModal = ref(false)
+const showApproval = ref(false)
+const selectedProject = ref<Project | null>(null)
+const searchQuery = ref('')
+const selectedStatus = ref('')
+const selectedLaboratory = ref('')
+const selectedPriority = ref('')
 
-const grantForm = ref({
-  targetType: 'user',
-  target: '',
+const createForm = ref({
+  title: '',
+  description: '',
   laboratory: '',
-  startTime: '09:00',
-  endTime: '17:00'
+  priority: 'medium' as 'low' | 'medium' | 'high',
+  startDate: '',
+  endDate: '',
+  teamMembers: [] as string[],
+  objectives: ''
 })
 
-const ruleForm = ref({
-  name: '',
-  targetType: 'role',
-  target: '',
-  laboratory: '',
-  startTime: '09:00',
-  endTime: '17:00',
-  weekdays: []
+const approvalForm = ref({
+  comments: ''
 })
 
-const weekdays = [
-  { label: 'Mon', value: 'Monday' },
-  { label: 'Tue', value: 'Tuesday' },
-  { label: 'Wed', value: 'Wednesday' },
-  { label: 'Thu', value: 'Thursday' },
-  { label: 'Fri', value: 'Friday' },
-  { label: 'Sat', value: 'Saturday' },
-  { label: 'Sun', value: 'Sunday' }
+const projectStats = ref({
+  total: 28,
+  inProgress: 12,
+  pending: 5,
+  completed: 11
+})
+
+const projectPhases: ProjectPhase[] = [
+  { key: 'application', label: 'Application', icon: FileCheck },
+  { key: 'design', label: 'Design', icon: FlaskConical },
+  { key: 'execution', label: 'Execution', icon: BookOpen },
+  { key: 'archive', label: 'Archive', icon: Archive }
 ]
 
-const accessStats = ref({
-  todayEntries: 47,
-  activeUsers: 12,
-  violations: 2,
-  avgDuration: 3.2
-})
-
-const availableRoles = ref(['TEACHER', 'STUDENT', 'DEPT_ADMIN', 'SYS_ADMIN', 'VISITOR'])
-
-const availableUsers = ref([
-  { id: '1', name: 'John Smith' },
-  { id: '2', name: 'Sarah Johnson' },
-  { id: '3', name: 'Mike Chen' },
-  { id: '4', name: 'Emily Davis' }
-])
-
-const laboratories = ref([
+const laboratories = ref<Lab[]>([
   { id: 'ai-lab', name: 'AI Laboratory' },
   { id: 'iot-lab', name: 'IoT Laboratory' },
   { id: 'cloud-lab', name: 'Cloud Computing Lab' },
   { id: 'security-lab', name: 'Network Security Lab' }
 ])
 
-const accessRules = ref([
+const availableUsers = ref<User[]>([
+  { id: '1', name: 'Dr. Sarah Wilson', role: 'TEACHER', email: 'sarah@example.com' },
+  { id: '2', name: 'John Smith', role: 'STUDENT', email: 'john@example.com' },
+  { id: '3', name: 'Emily Davis', role: 'STUDENT', email: 'emily@example.com' },
+  { id: '4', name: 'Prof. Mike Johnson', role: 'TEACHER', email: 'mike@example.com' }
+])
+
+const projects = ref<Project[]>([
   {
     id: '1',
-    name: 'Teacher Full Access',
-    target: { type: 'role', value: 'TEACHER' },
-    laboratory: '',
-    timeSlot: '08:00-20:00',
-    weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-    enabled: true
+    title: 'Machine Learning in Medical Diagnosis',
+    description: 'Developing an AI system for automated medical image analysis and diagnosis using deep learning techniques.',
+    status: 'in_progress',
+    priority: 'high',
+    principalInvestigator: {
+      id: '1',
+      name: 'Dr. Sarah Wilson',
+      role: 'TEACHER',
+      email: 'sarah@example.com'
+    },
+    teamMembers: ['2', '3'],
+    laboratory: 'AI Laboratory',
+    startDate: '2025-01-15',
+    endDate: '2025-06-30',
+    progress: 65,
+    phases: {
+      application: true,
+      design: true,
+      execution: true,
+      archive: false
+    },
+    objectives: 'Improve medical diagnosis accuracy by 25% using AI algorithms',
+    createdAt: '2025-01-10',
+    updatedAt: '2025-09-20'
   },
   {
     id: '2',
-    name: 'Student Lab Hours',
-    target: { type: 'role', value: 'STUDENT' },
-    laboratory: '',
-    timeSlot: '09:00-17:00',
-    weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-    enabled: true
+    title: 'IoT Environmental Monitoring System',
+    description: 'Building a comprehensive IoT network for real-time environmental monitoring in smart buildings.',
+    status: 'pending',
+    priority: 'medium',
+    principalInvestigator: {
+      id: '4',
+      name: 'Prof. Mike Johnson',
+      role: 'TEACHER',
+      email: 'mike@example.com'
+    },
+    teamMembers: ['2'],
+    laboratory: 'IoT Laboratory',
+    startDate: '2025-10-01',
+    endDate: '2025-12-31',
+    progress: 0,
+    phases: {
+      application: true,
+      design: false,
+      execution: false,
+      archive: false
+    },
+    objectives: 'Create efficient energy management system for smart buildings',
+    createdAt: '2025-09-15',
+    updatedAt: '2025-09-27'
   },
   {
     id: '3',
-    name: 'Weekend Research Access',
-    target: { type: 'role', value: 'TEACHER' },
-    laboratory: 'AI Laboratory',
-    timeSlot: '10:00-18:00',
-    weekdays: ['Saturday', 'Sunday'],
-    enabled: true
-  },
-  {
-    id: '4',
-    name: 'Admin Override',
-    target: { type: 'role', value: 'SYS_ADMIN' },
-    laboratory: '',
-    timeSlot: '00:00-23:59',
-    weekdays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-    enabled: true
-  }
-])
-
-const currentOccupancy = ref([
-  {
-    id: 'ai-lab',
-    name: 'AI Laboratory',
-    occupancy: 3,
-    capacity: 20,
-    currentUsers: [
-      {
-        id: '1',
-        name: 'Dr. Sarah Wilson',
-        role: 'TEACHER',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b900?w=64&h=64&fit=crop&crop=face',
-        entryTime: '09:15'
-      },
-      {
-        id: '2',
-        name: 'John Smith',
-        role: 'STUDENT',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face',
-        entryTime: '10:30'
-      },
-      {
-        id: '3',
-        name: 'Emily Davis',
-        role: 'STUDENT',
-        avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face',
-        entryTime: '11:45'
-      }
-    ]
-  },
-  {
-    id: 'iot-lab',
-    name: 'IoT Laboratory',
-    occupancy: 5,
-    capacity: 15,
-    currentUsers: [
-      {
-        id: '4',
-        name: 'Prof. Mike Johnson',
-        role: 'TEACHER',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face',
-        entryTime: '08:30'
-      },
-      {
-        id: '5',
-        name: 'Lisa Chen',
-        role: 'STUDENT',
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=64&h=64&fit=crop&crop=face',
-        entryTime: '09:00'
-      }
-    ]
-  },
-  {
-    id: 'cloud-lab',
-    name: 'Cloud Computing Lab',
-    occupancy: 1,
-    capacity: 25,
-    currentUsers: [
-      {
-        id: '6',
-        name: 'Alex Wilson',
-        role: 'STUDENT',
-        avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=64&h=64&fit=crop&crop=face',
-        entryTime: '14:20'
-      }
-    ]
-  }
-])
-
-const accessLogs = ref([
-  {
-    id: '1',
-    user: {
+    title: 'Blockchain Security Framework',
+    description: 'Research and development of advanced security protocols for blockchain networks.',
+    status: 'completed',
+    priority: 'high',
+    principalInvestigator: {
+      id: '1',
       name: 'Dr. Sarah Wilson',
       role: 'TEACHER',
-      avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b900?w=64&h=64&fit=crop&crop=face'
+      email: 'sarah@example.com'
     },
-    laboratory: 'AI Laboratory',
-    action: 'Entry',
-    timestamp: '2025-09-21 09:15:23',
-    status: 'violation'
-  },
-  {
-    id: '4',
-    user: {
-      name: 'Emily Davis',
-      role: 'STUDENT',
-      avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face'
+    teamMembers: ['3'],
+    laboratory: 'Network Security Lab',
+    startDate: '2024-08-01',
+    endDate: '2025-01-31',
+    progress: 100,
+    phases: {
+      application: true,
+      design: true,
+      execution: true,
+      archive: true
     },
-    laboratory: 'AI Laboratory',
-    action: 'Entry',
-    timestamp: '2025-09-21 11:45:30',
-    status: 'success'
-  },
-  {
-    id: '5',
-    user: {
-      name: 'Prof. Mike Johnson',
-      role: 'TEACHER',
-      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face'
-    },
-    laboratory: 'IoT Laboratory',
-    action: 'Exit',
-    timestamp: '2025-09-21 12:30:15',
-    status: 'success'
-  },
-  {
-    id: '6',
-    user: {
-      name: 'Lisa Chen',
-      role: 'STUDENT',
-      avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=64&h=64&fit=crop&crop=face'
-    },
-    laboratory: 'Cloud Computing Lab',
-    action: 'Entry',
-    timestamp: '2025-09-21 13:15:42',
-    status: 'success'
-  },
-  {
-    id: '7',
-    user: {
-      name: 'Expired Card User',
-      role: 'STUDENT',
-      avatarUrl: 'https://images.unsplash.com/photo-1463453091185-61582044d556?w=64&h=64&fit=crop&crop=face'
-    },
-    laboratory: 'AI Laboratory',
-    action: 'Entry Attempt',
-    timestamp: '2025-09-21 14:20:18',
-    status: 'violation'
-  },
-  {
-    id: '8',
-    user: {
-      name: 'Alex Wilson',
-      role: 'STUDENT',
-      avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=64&h=64&fit=crop&crop=face'
-    },
-    laboratory: 'Cloud Computing Lab',
-    action: 'Entry',
-    timestamp: '2025-09-21 14:20:35',
-    status: 'success'
+    objectives: 'Enhance blockchain security by implementing novel consensus mechanisms',
+    createdAt: '2024-07-20',
+    updatedAt: '2025-02-01'
   }
 ])
 
 // Computed properties
-const filteredAccessLogs = computed(() => {
-  return accessLogs.value.filter(log => {
-    const matchesFilter = !selectedLogFilter.value || 
-      (selectedLogFilter.value === 'entry' && log.action === 'Entry') ||
-      (selectedLogFilter.value === 'exit' && log.action === 'Exit') ||
-      (selectedLogFilter.value === 'violation' && log.status === 'violation')
+const filteredProjects = computed(() => {
+  return projects.value.filter(project => {
+    const matchesSearch = !searchQuery.value || 
+      project.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      project.description.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      project.principalInvestigator.name.toLowerCase().includes(searchQuery.value.toLowerCase())
     
-    const matchesLab = !selectedLabFilter.value || log.laboratory.toLowerCase().includes(selectedLabFilter.value.toLowerCase())
+    const matchesStatus = !selectedStatus.value || project.status === selectedStatus.value
+    const matchesLab = !selectedLaboratory.value || project.laboratory.toLowerCase().includes(selectedLaboratory.value.toLowerCase())
+    const matchesPriority = !selectedPriority.value || project.priority === selectedPriority.value
     
-    return matchesFilter && matchesLab
+    return matchesSearch && matchesStatus && matchesLab && matchesPriority
   })
 })
 
+// Permission computed properties
+const canCreateProject = computed(() => {
+  return ['SYS_ADMIN', 'DEPT_ADMIN', 'TEACHER', 'STUDENT'].includes(currentUserRole.value)
+})
+
+const canExportData = computed(() => {
+  return ['SYS_ADMIN', 'DEPT_ADMIN', 'TEACHER'].includes(currentUserRole.value)
+})
+
 // Methods
-const getOccupancyClass = (occupancy: number, capacity: number) => {
-  const percentage = (occupancy / capacity) * 100
-  if (percentage >= 80) return 'bg-red-100 text-red-800'
-  if (percentage >= 60) return 'bg-yellow-100 text-yellow-800'
-  return 'bg-green-100 text-green-800'
+const canEditProject = (project: Project) => {
+  if (['SYS_ADMIN', 'DEPT_ADMIN'].includes(currentUserRole.value)) return true
+  if (currentUserRole.value === 'TEACHER') return true // Teachers can edit their own projects
+  return false
 }
 
-const getActionIcon = (action: string) => {
-  if (action === 'Entry') return LogIn
-  if (action === 'Exit') return LogOut
-  return AlertTriangle
+const canApproveProject = (project: Project) => {
+  return ['SYS_ADMIN', 'DEPT_ADMIN'].includes(currentUserRole.value) && project.status === 'pending'
 }
 
-const getActionColor = (action: string) => {
-  if (action === 'Entry') return 'text-green-600'
-  if (action === 'Exit') return 'text-blue-600'
-  return 'text-red-600'
+const canDeleteProject = (project: Project) => {
+  return ['SYS_ADMIN', 'DEPT_ADMIN'].includes(currentUserRole.value) && 
+    ['pending', 'rejected'].includes(project.status)
 }
 
 const getStatusClass = (status: string) => {
   switch (status) {
-    case 'success':
-      return 'bg-green-100 text-green-800'
-    case 'violation':
-      return 'bg-red-100 text-red-800'
     case 'pending':
       return 'bg-yellow-100 text-yellow-800'
+    case 'approved':
+      return 'bg-blue-100 text-blue-800'
+    case 'in_progress':
+      return 'bg-purple-100 text-purple-800'
+    case 'completed':
+      return 'bg-green-100 text-green-800'
+    case 'archived':
+      return 'bg-gray-100 text-gray-800'
+    case 'rejected':
+      return 'bg-red-100 text-red-800'
     default:
       return 'bg-gray-100 text-gray-800'
   }
 }
 
-const editRule = (ruleId: string) => {
-  console.log('Edit rule:', ruleId)
-}
-
-const deleteRule = (ruleId: string) => {
-  const index = accessRules.value.findIndex(rule => rule.id === ruleId)
-  if (index !== -1) {
-    accessRules.value.splice(index, 1)
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'pending':
+      return 'Pending Review'
+    case 'approved':
+      return 'Approved'
+    case 'in_progress':
+      return 'In Progress'
+    case 'completed':
+      return 'Completed'
+    case 'archived':
+      return 'Archived'
+    case 'rejected':
+      return 'Rejected'
+    default:
+      return status
   }
 }
 
-const reviewViolation = (logId: string) => {
-  console.log('Review violation:', logId)
+const getPriorityClass = (priority: string) => {
+  switch (priority) {
+    case 'high':
+      return 'bg-red-100 text-red-800'
+    case 'medium':
+      return 'bg-yellow-100 text-yellow-800'
+    case 'low':
+      return 'bg-green-100 text-green-800'
+    default:
+      return 'bg-gray-100 text-gray-800'
+  }
 }
 
-const exportLogs = () => {
-  console.log('Export access logs')
+const getPhaseClass = (project: Project, phaseKey: string) => {
+  return project.phases[phaseKey as keyof typeof project.phases] 
+    ? 'text-green-600' 
+    : 'text-gray-400'
 }
 
-const grantAccess = () => {
-  console.log('Grant access:', grantForm.value)
-  showGrantModal.value = false
+const getPhaseTextClass = (project: Project, phaseKey: string) => {
+  return project.phases[phaseKey as keyof typeof project.phases] 
+    ? 'text-green-600' 
+    : 'text-gray-400'
+}
+
+const viewProject = (projectId: string) => {
+  console.log('View project details:', projectId)
+  // Navigate to project detail page
+}
+
+const editProject = (projectId: string) => {
+  console.log('Edit project:', projectId)
+  // Navigate to project edit page
+}
+
+const deleteProject = (projectId: string) => {
+  if (confirm('Are you sure you want to delete this project?')) {
+    const index = projects.value.findIndex(p => p.id === projectId)
+    if (index !== -1) {
+      projects.value.splice(index, 1)
+      updateProjectStats()
+    }
+  }
+}
+
+const showApprovalModal = (project: Project) => {
+  selectedProject.value = project
+  showApproval.value = true
+}
+
+const approveProject = () => {
+  if (!selectedProject.value) return
   
-  // Reset form
-  grantForm.value = {
-    targetType: 'user',
-    target: '',
-    laboratory: '',
-    startTime: '09:00',
-    endTime: '17:00'
+  const project = projects.value.find(p => p.id === selectedProject.value!.id)
+  if (project) {
+    project.status = 'approved'
+    project.updatedAt = new Date().toISOString().split('T')[0]
+    console.log('Project approved:', selectedProject.value.id, 'Comments:', approvalForm.value.comments)
   }
+  
+  showApproval.value = false
+  approvalForm.value.comments = ''
+  selectedProject.value = null
+  updateProjectStats()
 }
 
-const addAccessRule = () => {
-  const newRule = {
+const rejectProject = () => {
+  if (!selectedProject.value) return
+  
+  const project = projects.value.find(p => p.id === selectedProject.value!.id)
+  if (project) {
+    project.status = 'rejected'
+    project.updatedAt = new Date().toISOString().split('T')[0]
+    console.log('Project rejected:', selectedProject.value.id, 'Comments:', approvalForm.value.comments)
+  }
+  
+  showApproval.value = false
+  approvalForm.value.comments = ''
+  selectedProject.value = null
+  updateProjectStats()
+}
+
+const createProject = () => {
+  const newProject: Project = {
     id: Date.now().toString(),
-    name: ruleForm.value.name,
-    target: {
-      type: ruleForm.value.targetType,
-      value: ruleForm.value.target
+    title: createForm.value.title,
+    description: createForm.value.description,
+    status: 'pending',
+    priority: createForm.value.priority,
+    principalInvestigator: availableUsers.value[0], // In real app, this would be current user
+    teamMembers: createForm.value.teamMembers,
+    laboratory: createForm.value.laboratory,
+    startDate: createForm.value.startDate,
+    endDate: createForm.value.endDate,
+    progress: 0,
+    phases: {
+      application: true,
+      design: false,
+      execution: false,
+      archive: false
     },
-    laboratory: ruleForm.value.laboratory || '',
-    timeSlot: `${ruleForm.value.startTime}-${ruleForm.value.endTime}`,
-    weekdays: ruleForm.value.weekdays,
-    enabled: true
+    objectives: createForm.value.objectives,
+    createdAt: new Date().toISOString().split('T')[0],
+    updatedAt: new Date().toISOString().split('T')[0]
   }
   
-  accessRules.value.unshift(newRule)
-  showRuleModal.value = false
+  projects.value.unshift(newProject)
+  showCreateModal.value = false
   
   // Reset form
-  ruleForm.value = {
-    name: '',
-    targetType: 'role',
-    target: '',
+  createForm.value = {
+    title: '',
+    description: '',
     laboratory: '',
-    startTime: '09:00',
-    endTime: '17:00',
-    weekdays: []
+    priority: 'medium',
+    startDate: '',
+    endDate: '',
+    teamMembers: [],
+    objectives: ''
+  }
+  
+  updateProjectStats()
+}
+
+const exportProjects = () => {
+  console.log('Export projects to CSV/Excel')
+  // Implementation for exporting project data
+}
+
+const updateProjectStats = () => {
+  projectStats.value = {
+    total: projects.value.length,
+    inProgress: projects.value.filter(p => p.status === 'in_progress').length,
+    pending: projects.value.filter(p => p.status === 'pending').length,
+    completed: projects.value.filter(p => p.status === 'completed').length
   }
 }
 
 onMounted(() => {
+  updateProjectStats()
+  
   // Simulate real-time updates
   setInterval(() => {
-    // Update occupancy randomly
-    currentOccupancy.value.forEach(lab => {
-      const change = Math.random() > 0.7 ? (Math.random() > 0.5 ? 1 : -1) : 0
-      lab.occupancy = Math.max(0, Math.min(lab.capacity, lab.occupancy + change))
+    // Randomly update project progress for in-progress projects
+    projects.value.forEach(project => {
+      if (project.status === 'in_progress' && Math.random() > 0.9) {
+        project.progress = Math.min(100, project.progress + Math.floor(Math.random() * 5))
+        project.updatedAt = new Date().toISOString().split('T')[0]
+        
+        // Auto-complete project when progress reaches 100%
+        if (project.progress === 100) {
+          project.status = 'completed'
+          project.phases.execution = true
+        }
+      }
     })
-    
-    // Update stats
-    accessStats.value.activeUsers = currentOccupancy.value.reduce((sum, lab) => sum + lab.occupancy, 0)
-  }, 30000) // Update every 30 seconds
+    updateProjectStats()
+  }, 60000) // Update every minute
 })
 </script>

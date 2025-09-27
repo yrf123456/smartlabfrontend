@@ -1,4 +1,4 @@
-// 角色枚举 - 全英文
+// Role enums - English only
 export enum UserRole {
   SYSTEM_ADMIN = 'SYSTEM_ADMIN',
   DEPARTMENT_ADMIN = 'DEPARTMENT_ADMIN', 
@@ -7,38 +7,38 @@ export enum UserRole {
   VISITOR = 'VISITOR'
 }
 
-// 权限枚举 - 全英文  
+// Permission enums - English only  
 export enum Permission {
-  // 系统管理权限
+  // System management permissions
   SYSTEM_SETTINGS = 'SYSTEM_SETTINGS',
   USER_MANAGEMENT = 'USER_MANAGEMENT',
   ROLE_MANAGEMENT = 'ROLE_MANAGEMENT',
   
-  // 实验室管理权限
+  // Lab management permissions
   LAB_CREATE = 'LAB_CREATE',
   LAB_EDIT = 'LAB_EDIT',
   LAB_DELETE = 'LAB_DELETE',
   LAB_VIEW = 'LAB_VIEW',
   
-  // 预约管理权限
+  // Booking management permissions
   BOOKING_CREATE = 'BOOKING_CREATE',
   BOOKING_APPROVE = 'BOOKING_APPROVE',
   BOOKING_REJECT = 'BOOKING_REJECT',
   BOOKING_VIEW = 'BOOKING_VIEW',
   
-  // 设备管理权限
+  // Equipment management permissions
   EQUIPMENT_MANAGE = 'EQUIPMENT_MANAGE',
   EQUIPMENT_VIEW = 'EQUIPMENT_VIEW',
   
-  // 环境监测权限
+  // Environment monitoring permissions
   ENVIRONMENT_CONFIG = 'ENVIRONMENT_CONFIG',
   ENVIRONMENT_VIEW = 'ENVIRONMENT_VIEW',
   
-  // 门禁管理权限
+  // Access control permissions
   ACCESS_MANAGE = 'ACCESS_MANAGE',
   ACCESS_VIEW = 'ACCESS_VIEW',
   
-  // 报表权限
+  // Report permissions
   REPORT_VIEW = 'REPORT_VIEW',
   REPORT_EXPORT = 'REPORT_EXPORT'
 }
@@ -52,6 +52,22 @@ export interface User {
   permissions: Permission[]
   token?: string
   status: 'active' | 'disabled'
+}
+
+// Registration related types
+export interface RegisterRequest {
+  name: string
+  email: string
+  password: string
+  confirmPassword: string
+  role?: UserRole
+  department?: string
+}
+
+export interface RegisterResponse {
+  user: User
+  token: string
+  requiresApproval?: boolean
 }
 
 export interface Lab {
@@ -146,7 +162,7 @@ export interface PaginatedData<T> {
   size: number
 }
 
-// 语言相关类型
+// Language related types
 export type LocaleType = 'en'
 
 export interface LocaleOption {
@@ -155,7 +171,7 @@ export interface LocaleOption {
   flag: string
 }
 
-// UI 状态类型
+// UI state types
 export interface UiState {
   sidebarOpen: boolean
   theme: 'light' | 'dark'

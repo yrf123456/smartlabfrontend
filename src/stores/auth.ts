@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed, nextTick } from 'vue'
-import type { User } from '@/types'
+import type { User, RegisterRequest } from '@/types'
 import { UserRole, Permission } from '@/types'
 import { api } from '@/api'
 
@@ -84,7 +84,47 @@ export const useAuthStore = defineStore('auth', () => {
       
       return { 
         success: false, 
-        message: error.response?.data?.message || error.message || '登录失败' 
+        message: error.response?.data?.message || error.message || 'Login failed' 
+      }
+    } finally {
+      loading.value = false
+    }
+  }
+
+  const register = async (data: RegisterRequest) => {
+    try {
+      loading.value = true
+      console.log('📝 AuthStore: Attempting registration for', data.email)
+      
+      const response = await api.auth.register(data)
+      
+      // 立即更新状态
+      user.value = response.data.user
+      token.value = response.data.token
+      
+      // 存储到 localStorage
+      localStorage.setItem('auth_token', token.value)
+      localStorage.setItem('user_info', JSON.stringify(user.value))
+      
+      // 确保响应式更新完成
+      await nextTick()
+      
+      console.log('✅ AuthStore: Registration successful for', user.value?.name)
+      
+      return { 
+        success: true,
+        requiresApproval: response.data.requiresApproval || false
+      }
+    } catch (error: any) {
+      console.error('❌ AuthStore: Registration failed:', error)
+      
+      // 清除可能的部分状态
+      user.value = null
+      token.value = null
+      
+      return { 
+        success: false, 
+        message: error.response?.data?.message || error.message || 'Registration failed' 
       }
     } finally {
       loading.value = false
@@ -246,6 +286,7 @@ export const useAuthStore = defineStore('auth', () => {
     isVisitor,
     // 方法
     login,
+    register,
     logout,
     initAuth,
     fetchProfile,

@@ -413,7 +413,6 @@ const handleBookLab = (lab: Lab) => {
 
 const handleCreateNew = () => {
   router.push('/labs/new/edit')
-  console.log('Current routes:', router.getRoutes())
 }
 
 const getStatusClass = (status: Lab['status']) => {
