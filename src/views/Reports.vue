@@ -40,6 +40,7 @@
             <option value="access">Access Logs</option>
             <option value="environment">Environment Data</option>
             <option value="users">User Activity</option>
+            <option value="responsibility">Responsibility Changes</option>
           </select>
         </div>
         
@@ -144,8 +145,6 @@
     <!-- Booking Statistics Report -->
     <div v-if="selectedReportType === 'bookings'" class="bg-white rounded-xl p-6 border border-gray-200">
       <h2 class="text-lg font-semibold text-gray-900 mb-6">Booking Statistics Report</h2>
-      
-      <!-- Chart Area -->
       <div class="h-64 bg-gray-50 rounded-lg flex items-center justify-center mb-6">
         <div class="text-center">
           <BarChart3 class="w-12 h-12 text-gray-400 mx-auto mb-2" />
@@ -153,8 +152,6 @@
           <p class="text-sm text-gray-400 mt-1">Showing {{ selectedDateRange }} data</p>
         </div>
       </div>
-      
-      <!-- Booking Details Table -->
       <div class="overflow-x-auto">
         <table class="w-full">
           <thead>
@@ -184,8 +181,6 @@
     <!-- Equipment Usage Report -->
     <div v-if="selectedReportType === 'equipment'" class="bg-white rounded-xl p-6 border border-gray-200">
       <h2 class="text-lg font-semibold text-gray-900 mb-6">Equipment Usage Report</h2>
-      
-      <!-- Equipment Usage Grid -->
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <div
           v-for="equipment in equipmentReport"
@@ -201,7 +196,6 @@
               {{ equipment.usageRate }}%
             </span>
           </div>
-          
           <div class="space-y-2 text-sm text-gray-600">
             <div class="flex justify-between">
               <span>Total Usage Hours:</span>
@@ -232,7 +226,6 @@
     <!-- Access Logs Report -->
     <div v-if="selectedReportType === 'access'" class="bg-white rounded-xl p-6 border border-gray-200">
       <h2 class="text-lg font-semibold text-gray-900 mb-6">Access Logs Report</h2>
-      
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <!-- Access Summary -->
         <div class="space-y-4">
@@ -281,8 +274,6 @@
     <!-- Environment Data Report -->
     <div v-if="selectedReportType === 'environment'" class="bg-white rounded-xl p-6 border border-gray-200">
       <h2 class="text-lg font-semibold text-gray-900 mb-6">Environment Data Report</h2>
-      
-      <!-- Environment Metrics -->
       <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 mb-6">
         <div class="text-center p-4 border border-gray-200 rounded-xl">
           <Thermometer class="w-8 h-8 text-orange-600 mx-auto mb-2" />
@@ -290,21 +281,18 @@
           <p class="text-xl font-bold text-gray-900">{{ environmentReport.avgTemp }}°C</p>
           <p class="text-xs text-gray-500">Range: {{ environmentReport.tempRange }}</p>
         </div>
-        
         <div class="text-center p-4 border border-gray-200 rounded-xl">
           <Droplets class="w-8 h-8 text-blue-600 mx-auto mb-2" />
           <p class="text-sm font-medium text-gray-600">Avg Humidity</p>
           <p class="text-xl font-bold text-gray-900">{{ environmentReport.avgHumidity }}%</p>
           <p class="text-xs text-gray-500">Range: {{ environmentReport.humidityRange }}</p>
         </div>
-        
         <div class="text-center p-4 border border-gray-200 rounded-xl">
           <Wind class="w-8 h-8 text-green-600 mx-auto mb-2" />
           <p class="text-sm font-medium text-gray-600">Avg Air Quality</p>
           <p class="text-xl font-bold text-gray-900">{{ environmentReport.avgAirQuality }}</p>
           <p class="text-xs text-gray-500">PM2.5 μg/m³</p>
         </div>
-        
         <div class="text-center p-4 border border-gray-200 rounded-xl">
           <AlertTriangle class="w-8 h-8 text-red-600 mx-auto mb-2" />
           <p class="text-sm font-medium text-gray-600">Threshold Violations</p>
@@ -312,8 +300,6 @@
           <p class="text-xs text-gray-500">Alerts triggered</p>
         </div>
       </div>
-      
-      <!-- Environment Alerts -->
       <div class="border-t border-gray-200 pt-6">
         <h3 class="text-base font-medium text-gray-900 mb-4">Recent Environment Alerts</h3>
         <div class="space-y-3">
@@ -346,7 +332,6 @@
     <!-- User Activity Report -->
     <div v-if="selectedReportType === 'users'" class="bg-white rounded-xl p-6 border border-gray-200">
       <h2 class="text-lg font-semibold text-gray-900 mb-6">User Activity Report</h2>
-      
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- User Statistics -->
         <div>
@@ -407,10 +392,57 @@
       </div>
     </div>
 
+    <!-- Responsibility Changes Report (moved ABOVE Export Options) -->
+    <div v-if="selectedReportType === 'responsibility'" class="bg-white rounded-xl p-6 border border-gray-200">
+      <h2 class="text-lg font-semibold text-gray-900 mb-6">Responsibility Changes</h2>
+
+      <div class="overflow-x-auto">
+        <table class="w-full">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="text-left py-3 px-4 font-medium text-gray-900">Users</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-900">Department</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-900">Previous Role</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-900">Now Role</th>
+              <th class="text-left py-3 px-4 font-medium text-gray-900">Changed By</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-200">
+            <tr v-for="r in filteredResponsibilityLogs" :key="r.id" class="hover:bg-gray-50">
+              <td class="py-3 px-4 text-sm text-gray-900">
+                <div class="flex items-center space-x-3">
+                  <img :src="r.avatarUrl" :alt="r.userName" class="w-9 h-9 rounded-full object-cover" />
+                  <div>
+                    <div class="font-medium">{{ r.userName }}</div>
+                    <div class="text-xs text-gray-500">{{ r.email }}</div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-3 px-4 text-sm text-gray-900">
+                {{ formatDept(r.departmentFrom, r.departmentTo) }}
+              </td>
+              <td class="py-3 px-4 text-sm">
+                <span class="px-2 py-1 text-xs font-medium rounded-full" :class="roleBadgeClass(r.roleFrom)">
+                  {{ r.roleFrom }}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-sm">
+                <span class="px-2 py-1 text-xs font-medium rounded-full" :class="roleBadgeClass(r.roleTo)">
+                  {{ r.roleTo }}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-sm text-gray-900">
+                {{ r.operator }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- Export Options -->
     <div class="bg-white rounded-xl p-6 border border-gray-200">
       <h2 class="text-lg font-semibold text-gray-900 mb-6">Export Options</h2>
-      
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <button 
           class="flex items-center justify-center space-x-3 p-4 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
@@ -449,8 +481,9 @@
   </div>
 </template>
 
+
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { 
   FileBarChart, 
   FileText, 
@@ -662,6 +695,79 @@ const userReport = ref({
   ]
 })
 
+// —— 人员职责变更日志（示例数据） —— //
+const responsibilityLogs = ref([
+  {
+    id: 'chg-001',
+    userName: 'Emily Davis',
+    email: 'emily.davis@university.edu',
+    avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=64&h=64&fit=crop&crop=face',
+    departmentFrom: 'Computer Science',
+    departmentTo: 'Information Technology',
+    roleFrom: 'Student',
+    roleTo: 'Research Assistant',
+    operator: 'Dr. Sarah Wilson',
+  },
+  {
+    id: 'chg-002',
+    userName: 'John Smith',
+    email: 'john.smith@student.university.edu',
+    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop&crop=face',
+    departmentFrom: 'Cybersecurity',
+    departmentTo: 'Data Science',
+    roleFrom: 'Research Assistant',
+    roleTo: 'Researcher',
+    operator: 'Prof. Michael Johnson',
+  },
+  {
+    id: 'chg-003',
+    userName: 'Lisa Rodriguez',
+    email: 'lisa.rodriguez@student.university.edu',
+    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=64&h=64&fit=crop&crop=face',
+    departmentFrom: 'Data Science',
+    departmentTo: 'Cybersecurity',
+    roleFrom: 'Student',
+    roleTo: 'Student',
+    operator: 'System',
+  },
+])
+
+// 角色徽章颜色（贴近你的用户管理表风格）
+const roleBadgeClass = (role: string) => {
+  const r = role.toLowerCase()
+  if (r.includes('admin')) return 'bg-red-100 text-red-800'
+  if (r.includes('researcher')) return 'bg-blue-100 text-blue-800'
+  if (r.includes('assistant')) return 'bg-purple-100 text-purple-800'
+  if (r.includes('teacher')) return 'bg-indigo-100 text-indigo-800'
+  if (r.includes('student')) return 'bg-green-100 text-green-800'
+  if (r.includes('visitor')) return 'bg-gray-100 text-gray-800'
+  return 'bg-yellow-100 text-yellow-800'
+}
+
+const formatDept = (from: string, to: string) => (from === to ? from : `${from} → ${to}`)
+
+// Laboratory 下拉映射到显示名（用于过滤）
+const LAB_KEY_2_NAME: Record<string, string> = {
+  '': '',
+  'ai-lab': 'AI Laboratory',
+  'iot-lab': 'IoT Laboratory',
+  'cloud-lab': 'Cloud Computing Lab',
+  'security-lab': 'Network Security Lab',
+}
+
+// 根据 Laboratory（以及后续可扩展日期）做前端过滤
+const filteredResponsibilityLogs = computed(() => {
+  const pickedLabName = LAB_KEY_2_NAME[selectedLab.value] || ''
+  return responsibilityLogs.value.filter(r => {
+    if (pickedLabName) {
+      const hit = r.departmentFrom === pickedLabName || r.departmentTo === pickedLabName
+      if (!hit) return false
+    }
+    // 若后续给记录加 effectiveAt，可用 customDateStart/customDateEnd 进一步过滤
+    return true
+  })
+})
+
 // Methods
 const getUsageClass = (usageRate: number) => {
   if (usageRate >= 80) return 'bg-green-100 text-green-800'
@@ -677,19 +783,16 @@ const applyFilters = () => {
     customStart: customDateStart.value,
     customEnd: customDateEnd.value
   })
-  
-  // Simulate filter application with loading state
-  // In real implementation, this would fetch filtered data from API
+
 }
 
 const generateReport = () => {
   console.log('Generating report for:', selectedReportType.value)
-  // Simulate report generation
 }
+
 
 const exportToPDF = () => {
   console.log('Exporting to PDF...')
-  // Simulate PDF export
   setTimeout(() => {
     const link = document.createElement('a')
     link.href = '#'
@@ -700,7 +803,6 @@ const exportToPDF = () => {
 
 const exportToExcel = () => {
   console.log('Exporting to Excel...')
-  // Simulate Excel export
   setTimeout(() => {
     const link = document.createElement('a')
     link.href = '#'
@@ -709,24 +811,40 @@ const exportToExcel = () => {
   }, 1000)
 }
 
+// CSV：新增 responsibility 分支 + BOM，Excel 不乱码
 const exportToCSV = () => {
   console.log('Exporting to CSV...')
-  // Simulate CSV export
   let csvContent = ''
-  
+
   if (selectedReportType.value === 'bookings') {
-    csvContent = 'Laboratory,Total Bookings,Approved,Rejected,Utilization Rate,Avg Duration\n'
+    csvContent = 'Laboratory,Total Bookings,Approved,Rejected,Utilization Rate,Avg Duration\r\n'
     bookingReport.value.forEach(item => {
-      csvContent += `${item.lab},${item.total},${item.approved},${item.rejected},${item.utilizationRate}%,${item.avgDuration}h\n`
+      csvContent += `${item.lab},${item.total},${item.approved},${item.rejected},${item.utilizationRate}%,${item.avgDuration}h\r\n`
     })
   } else if (selectedReportType.value === 'equipment') {
-    csvContent = 'Equipment Name,Usage Rate,Total Hours,Active Days,Maintenance Events,Status\n'
+    csvContent = 'Equipment Name,Usage Rate,Total Hours,Active Days,Maintenance Events,Status\r\n'
     equipmentReport.value.forEach(item => {
-      csvContent += `${item.name},${item.usageRate}%,${item.totalHours},${item.activeDays},${item.maintenanceEvents},${item.status}\n`
+      csvContent += `${item.name},${item.usageRate}%,${item.totalHours},${item.activeDays},${item.maintenanceEvents},${item.status}\r\n`
     })
+  } else if (selectedReportType.value === 'responsibility') {
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+    csvContent = 'Users,Department,Previous Role,New Role,Changed By\r\n'
+    filteredResponsibilityLogs.value.forEach(r => {
+      const dept = r.departmentFrom === r.departmentTo ? r.departmentFrom : `${r.departmentFrom} → ${r.departmentTo}`
+      csvContent += [
+        esc(r.userName),
+        esc(dept),
+        esc(r.roleFrom),
+        esc(r.roleTo),
+        esc(r.operator)
+      ].join(',') + '\r\n'
+    })
+  } else {
+    csvContent = 'No data\r\n'
   }
-  
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+
+  const BOM = '\uFEFF'
+  const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
   link.setAttribute('href', url)
@@ -741,10 +859,9 @@ onMounted(() => {
   // Initialize default date range
   const today = new Date()
   const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
-  
   customDateEnd.value = today.toISOString().split('T')[0]
   customDateStart.value = thirtyDaysAgo.toISOString().split('T')[0]
-  
+
   // Load initial report data
   applyFilters()
 })
