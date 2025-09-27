@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ $t('nav.equipment') }}</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Equipment Management</h1>
         <p class="text-gray-600 mt-1">Manage laboratory equipment and resources</p>
       </div>
       
@@ -153,44 +153,53 @@
           </div>
         </div>
         
-        <!-- Actions -->
-        <div class="space-y-2">
+        <!-- Status Toggle Buttons -->
+        <div class="grid grid-cols-2 gap-1 mb-3">
           <button 
-            v-if="equipment.status === 'available'"
-            class="w-full bg-primary-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors"
-            @click="reserveEquipment(equipment.id)"
+            class="py-1.5 px-2 rounded text-xs font-medium transition-colors"
+            :class="equipment.status === 'available' 
+              ? 'bg-green-500 text-white' 
+              : 'bg-gray-200 text-gray-500 hover:bg-gray-300'"
+            @click="setEquipmentStatus(equipment.id, 'available')"
           >
-            Reserve
+            Available
           </button>
           <button 
-            v-else-if="equipment.status === 'in-use'"
-            class="w-full bg-orange-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
-            @click="releaseEquipment(equipment.id)"
+            class="py-1.5 px-2 rounded text-xs font-medium transition-colors"
+            :class="equipment.status === 'in-use' 
+              ? 'bg-orange-500 text-white' 
+              : 'bg-gray-200 text-gray-500 hover:bg-gray-300'"
+            @click="setEquipmentStatus(equipment.id, 'in-use')"
           >
-            Release
+            In Use
           </button>
           <button 
-            v-else-if="equipment.status === 'maintenance'"
-            class="w-full bg-green-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-green-600 transition-colors"
-            @click="completeMaintenaceStatus(equipment.id)"
+            class="py-1.5 px-2 rounded text-xs font-medium transition-colors"
+            :class="equipment.status === 'maintenance' 
+              ? 'bg-yellow-500 text-white' 
+              : 'bg-gray-200 text-gray-500 hover:bg-gray-300'"
+            @click="setEquipmentStatus(equipment.id, 'maintenance')"
           >
-            Complete
+            Maintenance
           </button>
           <button 
-            v-else
-            class="w-full bg-gray-400 text-white py-2 px-3 rounded-lg text-sm font-medium cursor-not-allowed"
-            disabled
+            class="py-1.5 px-2 rounded text-xs font-medium transition-colors"
+            :class="equipment.status === 'offline' 
+              ? 'bg-red-500 text-white' 
+              : 'bg-gray-200 text-gray-500 hover:bg-gray-300'"
+            @click="setEquipmentStatus(equipment.id, 'offline')"
           >
-            Unavailable
-          </button>
-          
-          <button
-            class="w-full bg-red-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
-            @click="onDelete(equipment.id)"
-          >
-            Delete
+            Offline
           </button>
         </div>
+        
+        <!-- Delete Button -->
+        <button
+          class="w-full bg-red-500 text-white py-2 px-3 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+          @click="onDelete(equipment.id)"
+        >
+          Delete
+        </button>
       </div>
     </div>
 
@@ -354,10 +363,6 @@ import {
   Monitor, 
   Plus, 
   Search, 
-  Hash, 
-  MapPin, 
-  Tag, 
-  Calendar, 
   CheckCircle, 
   Clock, 
   Wrench, 
@@ -368,6 +373,27 @@ import {
   Activity,
   HardDrive
 } from 'lucide-vue-next'
+
+// Define interfaces
+interface Equipment {
+  id: string
+  name: string
+  model: string
+  category: string
+  location: string
+  status: 'available' | 'in-use' | 'maintenance' | 'offline'
+  lastMaintenance: string
+  specifications?: Record<string, string>
+  description?: string
+}
+
+interface EquipmentStats {
+  total: number
+  available: number
+  inUse: number
+  maintenance: number
+  offline: number
+}
 
 // Reactive data
 const searchQuery = ref('')
@@ -384,7 +410,7 @@ const newEquipment = ref({
   description: ''
 })
 
-const equipment = ref([
+const equipment = ref<Equipment[]>([
   {
     id: 'EQ-001',
     name: 'NVIDIA RTX 4090',
@@ -507,12 +533,12 @@ const equipment = ref([
   }
 ])
 
-const equipmentStats = ref({
-  total: 45,
-  available: 18,
-  inUse: 15,
-  maintenance: 8,
-  offline: 4
+const equipmentStats = ref<EquipmentStats>({
+  total: 8,
+  available: 4,
+  inUse: 2,
+  maintenance: 1,
+  offline: 1
 })
 
 // Computed properties
@@ -586,31 +612,52 @@ const getCategoryIcon = (category: string) => {
   }
 }
 
-const reserveEquipment = (id: string) => {
+const setEquipmentStatus = (id: string, newStatus: 'available' | 'in-use' | 'maintenance' | 'offline') => {
   const item = equipment.value.find(e => e.id === id)
-  if (item) {
-    item.status = 'in-use'
-    equipmentStats.value.available--
-    equipmentStats.value.inUse++
-  }
-}
-
-const releaseEquipment = (id: string) => {
-  const item = equipment.value.find(e => e.id === id)
-  if (item) {
-    item.status = 'available'
-    equipmentStats.value.inUse--
-    equipmentStats.value.available++
-  }
-}
-
-const completeMaintenaceStatus = (id: string) => {
-  const item = equipment.value.find(e => e.id === id)
-  if (item) {
-    item.status = 'available'
+  if (!item) return
+  
+  const oldStatus = item.status
+  item.status = newStatus
+  
+  // Update maintenance date if status changed to available from maintenance
+  if (oldStatus === 'maintenance' && newStatus === 'available') {
     item.lastMaintenance = new Date().toISOString().split('T')[0]
-    equipmentStats.value.maintenance--
-    equipmentStats.value.available++
+  }
+  
+  updateStatsForStatusChange(oldStatus, newStatus)
+}
+
+const updateStatsForStatusChange = (oldStatus: string, newStatus: string) => {
+  // Decrease old status count
+  switch (oldStatus) {
+    case 'available':
+      equipmentStats.value.available--
+      break
+    case 'in-use':
+      equipmentStats.value.inUse--
+      break
+    case 'maintenance':
+      equipmentStats.value.maintenance--
+      break
+    case 'offline':
+      equipmentStats.value.offline--
+      break
+  }
+  
+  // Increase new status count
+  switch (newStatus) {
+    case 'available':
+      equipmentStats.value.available++
+      break
+    case 'in-use':
+      equipmentStats.value.inUse++
+      break
+    case 'maintenance':
+      equipmentStats.value.maintenance++
+      break
+    case 'offline':
+      equipmentStats.value.offline++
+      break
   }
 }
 
@@ -619,7 +666,7 @@ const onDelete = (id: string) => {
   if (idx === -1) return
 
   const item = equipment.value[idx]
-  const ok = window.confirm(`Confirm deletion of the device ${item?.name ? `「${item.name}」` : ''}（ID: ${id}）? This operation cannot be undone.`)
+  const ok = window.confirm(`Confirm deletion of the device ${item?.name ? `"${item.name}"` : ''}(ID: ${id})? This operation cannot be undone.`)
   if (!ok) return
 
   equipment.value.splice(idx, 1)
@@ -629,19 +676,26 @@ const onDelete = (id: string) => {
     case 'available':
       equipmentStats.value.available--
       break
+    case 'in-use':
+      equipmentStats.value.inUse--
+      break
     case 'maintenance':
       equipmentStats.value.maintenance--
       break
-    default:
-      equipmentStats.value.inUse--
+    case 'offline':
+      equipmentStats.value.offline--
       break
   }
 }
 
 const addEquipment = () => {
-  const item = {
+  const item: Equipment = {
     id: `EQ-${String(equipment.value.length + 1).padStart(3, '0')}`,
-    ...newEquipment.value,
+    name: newEquipment.value.name,
+    model: newEquipment.value.model,
+    category: newEquipment.value.category,
+    location: newEquipment.value.location,
+    description: newEquipment.value.description,
     status: 'available',
     lastMaintenance: new Date().toISOString().split('T')[0],
     specifications: {}
@@ -665,5 +719,6 @@ const addEquipment = () => {
 
 onMounted(() => {
   // Load equipment data
+  console.log('Equipment management page loaded')
 })
 </script>
