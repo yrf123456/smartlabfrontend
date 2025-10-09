@@ -17,14 +17,6 @@
           New Project
         </button>
         
-        <button 
-          v-if="canExportData"
-          class="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
-          @click="exportProjects"
-        >
-          <Download class="w-4 h-4 inline mr-2" />
-          Export
-        </button>
       </div>
     </div>
 

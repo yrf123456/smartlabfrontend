@@ -29,30 +29,37 @@
             <option value="pending">Pending</option>
             <option value="approved">Approved</option>
             <option value="rejected">Rejected</option>
-            <option value="completed">Completed</option>
           </select>
         </div>
         
         <div class="flex items-center space-x-2">
           <label class="text-sm font-medium text-gray-700">Laboratory:</label>
           <select 
-            v-model="selectedLab" 
+            v-model="selectedLabId" 
             class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            @change="fetchBookings"
           >
             <option value="">All Labs</option>
-            <option value="ai-lab">AI Laboratory</option>
-            <option value="iot-lab">IoT Laboratory</option>
-            <option value="cloud-lab">Cloud Computing Lab</option>
-            <option value="network-lab">Network Security Lab</option>
+            <option v-for="lab in labs" :key="lab.id" :value="lab.id">
+              {{ lab.name }}
+            </option>
           </select>
         </div>
         
         <div class="flex items-center space-x-2">
-          <label class="text-sm font-medium text-gray-700">Date:</label>
+          <label class="text-sm font-medium text-gray-700">Date Range:</label>
           <input 
-            v-model="selectedDate"
+            v-model="dateFrom"
             type="date" 
             class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            @change="fetchBookings"
+          >
+          <span class="text-gray-500">to</span>
+          <input 
+            v-model="dateTo"
+            type="date" 
+            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm"
+            @change="fetchBookings"
           >
         </div>
         
@@ -65,25 +72,53 @@
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    </div>
+
+    <!-- Error State -->
+    <div v-else-if="error" class="text-center py-12">
+      <div class="bg-red-50 rounded-2xl p-8 max-w-md mx-auto">
+        <AlertCircle class="w-12 h-12 text-red-400 mx-auto mb-4" />
+        <h3 class="text-lg font-medium text-red-900 mb-2">Error Loading Bookings</h3>
+        <p class="text-red-700 mb-4">{{ error }}</p>
+        <button
+          @click="fetchBookings"
+          class="inline-flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700 transition-colors"
+        >
+          <RefreshCw class="w-4 h-4" />
+          <span>Retry</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Bookings List -->
-    <div class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+    <div v-else class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
       <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">Recent Bookings</h2>
+        <h2 class="text-lg font-semibold text-gray-900">
+          {{ filteredBookings.length }} Booking(s)
+        </h2>
       </div>
       
-      <div class="divide-y divide-gray-200">
+      <div v-if="filteredBookings.length === 0" class="text-center py-12">
+        <Calendar class="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        <p class="text-gray-500">No bookings found</p>
+      </div>
+      
+      <div v-else class="divide-y divide-gray-200">
         <div
           v-for="booking in filteredBookings"
           :key="booking.id"
           class="p-6 hover:bg-gray-50 transition-colors"
         >
           <div class="flex items-center justify-between">
-            <div class="flex items-start space-x-4">
-              <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
-                <component :is="getLabIcon(booking.laboratory)" class="w-6 h-6 text-primary-600" />
+            <div class="flex items-start space-x-4 flex-1">
+              <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <TestTube class="w-6 h-6 text-primary-600" />
               </div>
               
-              <div class="flex-1">
+              <div class="flex-1 min-w-0">
                 <div class="flex items-center space-x-3 mb-2">
                   <h3 class="text-lg font-medium text-gray-900">{{ booking.title }}</h3>
                   <span 
@@ -96,43 +131,42 @@
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
                   <div class="flex items-center space-x-2">
-                    <MapPin class="w-4 h-4" />
-                    <span>{{ booking.laboratory }}</span>
+                    <MapPin class="w-4 h-4 flex-shrink-0" />
+                    <span>{{ getLabName(booking.labId) }}</span>
                   </div>
                   <div class="flex items-center space-x-2">
-                    <Clock class="w-4 h-4" />
-                    <span>{{ booking.date }} {{ booking.time }}</span>
+                    <Clock class="w-4 h-4 flex-shrink-0" />
+                    <span>{{ formatDateTime(booking.start) }} - {{ formatTime(booking.end) }}</span>
                   </div>
                   <div class="flex items-center space-x-2">
-                    <User class="w-4 h-4" />
-                    <span>{{ booking.requester }}</span>
+                    <Users class="w-4 h-4 flex-shrink-0" />
+                    <span>{{ booking.participants }} participant(s)</span>
                   </div>
                 </div>
                 
-                <p class="text-sm text-gray-500 mt-2">{{ booking.description }}</p>
+                <div class="flex items-center space-x-2 mt-2 text-sm text-gray-600">
+                  <User class="w-4 h-4 flex-shrink-0" />
+                  <span>{{ booking.requester?.name || 'Unknown' }}</span>
+                </div>
+                
+                <p v-if="booking.note" class="text-sm text-gray-500 mt-2">{{ booking.note }}</p>
               </div>
             </div>
             
-            <div class="flex items-center space-x-2">
+            <div class="flex items-center space-x-2 ml-4">
               <button 
-                v-if="booking.status === 'pending'"
+                v-if="booking.status === 'pending' && canApprove"
                 class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors"
-                @click="approveBooking(booking.id)"
+                @click="handleApprove(booking.id)"
               >
                 Approve
               </button>
               <button 
-                v-if="booking.status === 'pending'"
+                v-if="booking.status === 'pending' && canApprove"
                 class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
-                @click="rejectBooking(booking.id)"
+                @click="handleReject(booking.id)"
               >
                 Reject
-              </button>
-              <button 
-                class="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                @click="viewDetails(booking.id)"
-              >
-                Details
               </button>
             </div>
           </div>
@@ -175,10 +209,10 @@
       <div class="bg-white rounded-2xl p-6 border border-gray-200">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">This Week</p>
-            <p class="text-2xl font-bold text-blue-600">{{ bookingStats.thisWeek }}</p>
+            <p class="text-sm font-medium text-gray-600">Rejected</p>
+            <p class="text-2xl font-bold text-red-600">{{ bookingStats.rejected }}</p>
           </div>
-          <TrendingUp class="w-8 h-8 text-blue-600" />
+          <XCircle class="w-8 h-8 text-red-600" />
         </div>
       </div>
     </div>
@@ -190,14 +224,16 @@
       @click="showCreateModal = false"
     >
       <div 
-        class="bg-white rounded-2xl p-6 w-full max-w-md mx-4"
+        class="bg-white rounded-2xl p-6 w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto"
         @click.stop
       >
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Create New Booking</h3>
         
-        <form @submit.prevent="createBooking" class="space-y-4">
+        <form @submit.prevent="handleCreateBooking" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Title <span class="text-red-500">*</span>
+            </label>
             <input 
               v-model="newBooking.title"
               type="text" 
@@ -208,34 +244,64 @@
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Laboratory</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Laboratory <span class="text-red-500">*</span>
+            </label>
             <select 
-              v-model="newBooking.laboratory"
+              v-model="newBooking.labId"
               class="w-full border border-gray-300 rounded-lg px-3 py-2"
               required
             >
               <option value="">Select Laboratory</option>
-              <option value="AI Laboratory">AI Laboratory</option>
-              <option value="IoT Laboratory">IoT Laboratory</option>
-              <option value="Cloud Computing Lab">Cloud Computing Lab</option>
-              <option value="Network Security Lab">Network Security Lab</option>
+              <option v-for="lab in availableLabs" :key="lab.id" :value="lab.id">
+                {{ lab.name }} ({{ lab.location }})
+              </option>
             </select>
           </div>
           
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Start Date <span class="text-red-500">*</span>
+              </label>
               <input 
-                v-model="newBooking.date"
+                v-model="newBooking.startDate"
                 type="date" 
                 class="w-full border border-gray-300 rounded-lg px-3 py-2"
                 required
               >
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Start Time <span class="text-red-500">*</span>
+              </label>
               <input 
-                v-model="newBooking.time"
+                v-model="newBooking.startTime"
+                type="time" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                required
+              >
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                End Date <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="newBooking.endDate"
+                type="date" 
+                class="w-full border border-gray-300 rounded-lg px-3 py-2"
+                required
+              >
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                End Time <span class="text-red-500">*</span>
+              </label>
+              <input 
+                v-model="newBooking.endTime"
                 type="time" 
                 class="w-full border border-gray-300 rounded-lg px-3 py-2"
                 required
@@ -244,21 +310,36 @@
           </div>
           
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Participants <span class="text-red-500">*</span>
+            </label>
+            <input 
+              v-model.number="newBooking.participants"
+              type="number" 
+              min="1"
+              class="w-full border border-gray-300 rounded-lg px-3 py-2"
+              placeholder="Number of participants"
+              required
+            >
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Note</label>
             <textarea 
-              v-model="newBooking.description"
+              v-model="newBooking.note"
               class="w-full border border-gray-300 rounded-lg px-3 py-2"
               rows="3"
-              placeholder="Enter booking description"
+              placeholder="Enter booking note (optional)"
             ></textarea>
           </div>
           
           <div class="flex items-center space-x-3 pt-4">
             <button 
               type="submit"
-              class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
+              :disabled="submitting"
+              class="flex-1 bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors disabled:opacity-50"
             >
-              Create Booking
+              {{ submitting ? 'Creating...' : 'Create Booking' }}
             </button>
             <button 
               type="button"
@@ -281,114 +362,114 @@ import {
   Plus, 
   MapPin, 
   Clock, 
-  User, 
-  CheckCircle, 
-  TrendingUp,
-  Monitor,
-  Cpu,
-  Cloud,
-  Shield
+  User,
+  Users,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+  RefreshCw,
+  TestTube
 } from 'lucide-vue-next'
+import { useBookingStore } from '@/stores/booking'
+import { useLabStore } from '@/stores/lab'
+import { useAuthStore } from '@/stores/auth'
+import dayjs from 'dayjs'
+
+const bookingStore = useBookingStore()
+const labStore = useLabStore()
+const authStore = useAuthStore()
 
 // Reactive data
-const selectedStatus = ref('')
-const selectedLab = ref('')
-const selectedDate = ref('')
 const showCreateModal = ref(false)
+const selectedStatus = ref('')
+const selectedLabId = ref('')
+const dateFrom = ref('')
+const dateTo = ref('')
+const submitting = ref(false)
 
 const newBooking = ref({
   title: '',
-  laboratory: '',
-  date: '',
-  time: '',
-  description: ''
-})
-
-const bookings = ref([
-  {
-    id: '1',
-    title: 'Machine Learning Research Session',
-    laboratory: 'AI Laboratory',
-    date: '2025-09-22',
-    time: '09:00-12:00',
-    requester: 'John Smith',
-    status: 'pending',
-    description: 'Deep learning model training for computer vision project'
-  },
-  {
-    id: '2',
-    title: 'IoT Device Testing',
-    laboratory: 'IoT Laboratory',
-    date: '2025-09-22',
-    time: '14:00-17:00',
-    requester: 'Sarah Johnson',
-    status: 'approved',
-    description: 'Testing sensor network connectivity and data transmission'
-  },
-  {
-    id: '3',
-    title: 'Cloud Infrastructure Setup',
-    laboratory: 'Cloud Computing Lab',
-    date: '2025-09-23',
-    time: '10:00-15:00',
-    requester: 'Mike Chen',
-    status: 'approved',
-    description: 'Setting up Kubernetes cluster for distributed computing research'
-  },
-  {
-    id: '4',
-    title: 'Network Security Analysis',
-    laboratory: 'Network Security Lab',
-    date: '2025-09-23',
-    time: '16:00-18:00',
-    requester: 'Emily Davis',
-    status: 'pending',
-    description: 'Penetration testing and vulnerability assessment'
-  },
-  {
-    id: '5',
-    title: 'AI Model Deployment',
-    laboratory: 'AI Laboratory',
-    date: '2025-09-24',
-    time: '13:00-16:00',
-    requester: 'Alex Wilson',
-    status: 'completed',
-    description: 'Deploying trained models to production environment'
-  },
-  {
-    id: '6',
-    title: 'Hardware Performance Testing',
-    laboratory: 'IoT Laboratory',
-    date: '2025-09-24',
-    time: '09:00-11:00',
-    requester: 'Lisa Brown',
-    status: 'rejected',
-    description: 'Testing embedded systems performance under load'
-  }
-])
-
-const bookingStats = ref({
-  total: 24,
-  pending: 5,
-  approved: 12,
-  thisWeek: 8
+  labId: '',
+  startDate: '',
+  startTime: '',
+  endDate: '',
+  endTime: '',
+  participants: 1,
+  note: ''
 })
 
 // Computed properties
+const loading = computed(() => bookingStore.loading)
+const error = computed(() => bookingStore.error)
+const bookings = computed(() => bookingStore.bookings)
+const labs = computed(() => labStore.labs)
+
+const availableLabs = computed(() => {
+  return labs.value.filter(lab => lab.status === 'available')
+})
+
+const canApprove = computed(() => 
+  authStore.hasRole('SYS_ADMIN') || 
+  authStore.hasRole('DEPT_ADMIN')
+)
+
 const filteredBookings = computed(() => {
-  return bookings.value.filter(booking => {
-    if (selectedStatus.value && booking.status !== selectedStatus.value) return false
-    if (selectedLab.value && !booking.laboratory.toLowerCase().includes(selectedLab.value.toLowerCase())) return false
-    if (selectedDate.value && booking.date !== selectedDate.value) return false
-    return true
-  })
+  let result = bookings.value
+
+  if (selectedStatus.value) {
+    result = result.filter(b => b.status === selectedStatus.value)
+  }
+
+  return result
+})
+
+const bookingStats = computed(() => {
+  return {
+    total: bookings.value.length,
+    pending: bookings.value.filter(b => b.status === 'pending').length,
+    approved: bookings.value.filter(b => b.status === 'approved').length,
+    rejected: bookings.value.filter(b => b.status === 'rejected').length
+  }
 })
 
 // Methods
+const fetchBookings = async () => {
+  const params: any = {}
+  
+  if (selectedLabId.value) {
+    params.labId = selectedLabId.value
+  }
+  
+  if (dateFrom.value) {
+    params.from = dayjs(dateFrom.value).startOf('day').toISOString()
+  }
+  
+  if (dateTo.value) {
+    params.to = dayjs(dateTo.value).endOf('day').toISOString()
+  }
+  
+  await bookingStore.fetchBookings(params)
+}
+
 const clearFilters = () => {
   selectedStatus.value = ''
-  selectedLab.value = ''
-  selectedDate.value = ''
+  selectedLabId.value = ''
+  dateFrom.value = ''
+  dateTo.value = ''
+  fetchBookings()
+}
+
+const getLabName = (labId: string) => {
+  const lab = labs.value.find(l => l.id === labId)
+  return lab?.name || 'Unknown Lab'
+}
+
+const formatDateTime = (isoString: string) => {
+  return dayjs(isoString).format('YYYY-MM-DD HH:mm')
+}
+
+const formatTime = (isoString: string) => {
+  return dayjs(isoString).format('HH:mm')
 }
 
 const getStatusClass = (status: string) => {
@@ -399,8 +480,6 @@ const getStatusClass = (status: string) => {
       return 'bg-green-100 text-green-800'
     case 'rejected':
       return 'bg-red-100 text-red-800'
-    case 'completed':
-      return 'bg-blue-100 text-blue-800'
     default:
       return 'bg-gray-100 text-gray-800'
   }
@@ -414,68 +493,74 @@ const getStatusText = (status: string) => {
       return 'Approved'
     case 'rejected':
       return 'Rejected'
-    case 'completed':
-      return 'Completed'
     default:
       return 'Unknown'
   }
 }
 
-const getLabIcon = (laboratory: string) => {
-  if (laboratory.includes('AI')) return Cpu
-  if (laboratory.includes('IoT')) return Monitor
-  if (laboratory.includes('Cloud')) return Cloud
-  if (laboratory.includes('Security')) return Shield
-  return Monitor
-}
-
-const approveBooking = (id: string) => {
-  const booking = bookings.value.find(b => b.id === id)
-  if (booking) {
-    booking.status = 'approved'
-    bookingStats.value.pending--
-    bookingStats.value.approved++
+const handleApprove = async (id: string) => {
+  try {
+    await bookingStore.approveBooking(id)
+    await fetchBookings()
+  } catch (error) {
+    console.error('Failed to approve booking:', error)
   }
 }
 
-const rejectBooking = (id: string) => {
-  const booking = bookings.value.find(b => b.id === id)
-  if (booking) {
-    booking.status = 'rejected'
-    bookingStats.value.pending--
+const handleReject = async (id: string) => {
+  try {
+    await bookingStore.rejectBooking(id)
+    await fetchBookings()
+  } catch (error) {
+    console.error('Failed to reject booking:', error)
   }
 }
 
-const viewDetails = (id: string) => {
-  console.log('View details for booking:', id)
+const handleCreateBooking = async () => {
+  try {
+    submitting.value = true
+    
+    // Combine date and time
+    const start = dayjs(`${newBooking.value.startDate} ${newBooking.value.startTime}`).toISOString()
+    const end = dayjs(`${newBooking.value.endDate} ${newBooking.value.endTime}`).toISOString()
+    
+    const bookingData = {
+      labId: Number(newBooking.value.labId),
+      title: newBooking.value.title,
+      start,
+      end,
+      requesterId: Number(authStore.user?.id),
+      participants: newBooking.value.participants,
+      note: newBooking.value.note
+    }
+    
+    await bookingStore.createBooking(bookingData)
+    
+    // Reset form
+    newBooking.value = {
+      title: '',
+      labId: '',
+      startDate: '',
+      startTime: '',
+      endDate: '',
+      endTime: '',
+      participants: 1,
+      note: ''
+    }
+    
+    showCreateModal.value = false
+    await fetchBookings()
+  } catch (error) {
+    console.error('Failed to create booking:', error)
+  } finally {
+    submitting.value = false
+  }
 }
 
-const createBooking = () => {
-  const booking = {
-    id: Date.now().toString(),
-    ...newBooking.value,
-    requester: 'Current User',
-    status: 'pending'
-  }
-  
-  bookings.value.unshift(booking)
-  bookingStats.value.total++
-  bookingStats.value.pending++
-  bookingStats.value.thisWeek++
-  
-  // Reset form
-  newBooking.value = {
-    title: '',
-    laboratory: '',
-    date: '',
-    time: '',
-    description: ''
-  }
-  
-  showCreateModal.value = false
-}
-
-onMounted(() => {
-  // Load bookings data
+onMounted(async () => {
+  // Load labs first
+  await labStore.fetchLabs()
+  // Then load bookings
+  await fetchBookings()
 })
 </script>

@@ -8,7 +8,7 @@ export const useBookingStore = defineStore('booking', () => {
   const bookings = ref<BookingEvent[]>([])
   const loading = ref(false)
   const error = ref<string | null>(null)
-  const viewMode = ref<'calendar' | 'list'>('calendar')
+  const viewMode = ref<'calendar' | 'list'>('list')
   const currentDate = ref(dayjs())
   const selectedLabId = ref<string>('')
 
@@ -36,20 +36,29 @@ export const useBookingStore = defineStore('booking', () => {
       const response = await api.bookings.getList(params)
       bookings.value = response.data
     } catch (err: any) {
-      error.value = err.response?.data?.message || '获取预约列表失败'
+      error.value = err.response?.data?.message || 'Failed to fetch booking list'
       console.error('Failed to fetch bookings:', err)
+      throw err
     } finally {
       loading.value = false
     }
   }
 
-  const createBooking = async (booking: Omit<BookingEvent, 'id'>) => {
+  const createBooking = async (booking: {
+    labId: number
+    title: string
+    start: string
+    end: string
+    requesterId: number
+    participants: number
+    note?: string
+  }) => {
     try {
       const response = await api.bookings.create(booking)
-      bookings.value.push(response.data)
+      bookings.value.unshift(response.data)
       return response.data
     } catch (err: any) {
-      error.value = err.response?.data?.message || '创建预约失败'
+      error.value = err.response?.data?.message || 'Failed to create booking'
       throw err
     }
   }
@@ -63,37 +72,22 @@ export const useBookingStore = defineStore('booking', () => {
       }
       return response.data
     } catch (err: any) {
-      error.value = err.response?.data?.message || '审批预约失败'
+      error.value = err.response?.data?.message || 'Failed to approve booking'
       throw err
     }
   }
 
-  const rejectBooking = async (id: string, reason?: string) => {
+  const rejectBooking = async (id: string) => {
     try {
-      const response = await api.bookings.reject(id, reason)
+      const response = await api.bookings.reject(id)
       const index = bookings.value.findIndex(b => b.id === id)
       if (index > -1) {
         bookings.value[index] = response.data
       }
       return response.data
     } catch (err: any) {
-      error.value = err.response?.data?.message || '拒绝预约失败'
+      error.value = err.response?.data?.message || 'Failed to reject booking'
       throw err
-    }
-  }
-
-  const checkConflicts = async (booking: {
-    labId: string
-    start: string
-    end: string
-    excludeId?: string
-  }) => {
-    try {
-      const response = await api.bookings.checkConflicts(booking)
-      return response.data
-    } catch (err: any) {
-      console.error('Failed to check conflicts:', err)
-      return { hasConflicts: false, conflicts: [] }
     }
   }
 
@@ -122,7 +116,6 @@ export const useBookingStore = defineStore('booking', () => {
     createBooking,
     approveBooking,
     rejectBooking,
-    checkConflicts,
     setViewMode,
     setCurrentDate,
     setSelectedLabId

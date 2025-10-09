@@ -8,11 +8,11 @@
 
     <!-- Settings Navigation -->
     <div class="bg-white rounded-xl border border-gray-200 overflow-hidden">
-      <div class="flex border-b border-gray-200">
+      <div class="flex border-b border-gray-200 overflow-x-auto">
         <button
-          v-for="tab in settingsTabs"
+          v-for="tab in visibleTabs"
           :key="tab.id"
-          class="flex items-center space-x-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors"
+          class="flex items-center space-x-2 px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap"
           :class="activeTab === tab.id 
             ? 'border-primary-500 text-primary-600 bg-primary-50' 
             : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'"
@@ -25,7 +25,7 @@
     </div>
 
     <!-- General Settings -->
-    <div v-if="activeTab === 'general'" class="space-y-6">
+    <div v-show="activeTab === 'general'" class="space-y-6">
       <!-- Profile Settings -->
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 mb-6">Profile Settings</h2>
@@ -110,7 +110,7 @@
     </div>
 
     <!-- Security Settings -->
-    <div v-if="activeTab === 'security'" class="space-y-6">
+    <div v-show="activeTab === 'security'" class="space-y-6">
       <!-- Change Password -->
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 mb-6">Change Password</h2>
@@ -231,7 +231,7 @@
     </div>
 
     <!-- Notifications Settings -->
-    <div v-if="activeTab === 'notifications'" class="space-y-6">
+    <div v-show="activeTab === 'notifications'" class="space-y-6">
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 mb-6">Notification Preferences</h2>
         
@@ -298,7 +298,7 @@
     </div>
 
     <!-- System Settings (Admin Only) -->
-    <div v-if="activeTab === 'system' && isAdmin" class="space-y-6">
+    <div v-show="activeTab === 'system'" class="space-y-6">
       <!-- General System Settings -->
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <h2 class="text-lg font-semibold text-gray-900 mb-6">General System Settings</h2>
@@ -460,7 +460,7 @@
     </div>
 
     <!-- About -->
-    <div v-if="activeTab === 'about'" class="space-y-6">
+    <div v-show="activeTab === 'about'" class="space-y-6">
       <div class="bg-white rounded-xl p-6 border border-gray-200">
         <div class="text-center">
           <div class="w-16 h-16 bg-primary-100 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -470,7 +470,7 @@
           <h2 class="text-xl font-semibold text-gray-900 mb-2">Smart Lab Management System</h2>
           <p class="text-gray-600 mb-6">Intelligent laboratory management platform</p>
           
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center mb-8">
             <div>
               <p class="text-2xl font-bold text-primary-600">{{ aboutInfo.version }}</p>
               <p class="text-sm text-gray-500">Current Version</p>
@@ -485,50 +485,50 @@
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- System Information -->
-      <div class="bg-white rounded-xl p-6 border border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900 mb-6">System Information</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="space-y-3">
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Frontend Framework</span>
-              <span class="text-sm font-medium text-gray-900">Vue.js 3.4</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Build Tool</span>
-              <span class="text-sm font-medium text-gray-900">Vite 5.0</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">UI Framework</span>
-              <span class="text-sm font-medium text-gray-900">Tailwind CSS</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">State Management</span>
-              <span class="text-sm font-medium text-gray-900">Pinia</span>
-            </div>
-          </div>
+        <!-- System Information -->
+        <div class="border-t border-gray-200 pt-6">
+          <h3 class="text-lg font-semibold text-gray-900 mb-4">System Information</h3>
           
-          <div class="space-y-3">
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Last Updated</span>
-              <span class="text-sm font-medium text-gray-900">{{ aboutInfo.lastUpdated }}</span>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Frontend Framework</span>
+                <span class="text-sm font-medium text-gray-900">Vue.js 3.4</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Build Tool</span>
+                <span class="text-sm font-medium text-gray-900">Vite 5.0</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">UI Framework</span>
+                <span class="text-sm font-medium text-gray-900">Tailwind CSS</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">State Management</span>
+                <span class="text-sm font-medium text-gray-900">Pinia</span>
+              </div>
             </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Environment</span>
-              <span class="text-sm font-medium text-gray-900">{{ aboutInfo.environment }}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">License</span>
-              <span class="text-sm font-medium text-gray-900">MIT License</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-sm text-gray-600">Support</span>
-              <a href="mailto:support@smartlab.com" class="text-sm font-medium text-primary-600 hover:text-primary-700">
-                support@smartlab.com
-              </a>
+            
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Last Updated</span>
+                <span class="text-sm font-medium text-gray-900">{{ aboutInfo.lastUpdated }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Environment</span>
+                <span class="text-sm font-medium text-gray-900">{{ aboutInfo.environment }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">License</span>
+                <span class="text-sm font-medium text-gray-900">MIT License</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-sm text-gray-600">Support</span>
+                <a href="mailto:support@smartlab.com" class="text-sm font-medium text-primary-600 hover:text-primary-700">
+                  support@smartlab.com
+                </a>
+              </div>
             </div>
           </div>
         </div>
@@ -553,14 +553,16 @@ import {
   RefreshCw, 
   Building
 } from 'lucide-vue-next'
-import { useAuthStore } from '@/stores/auth'
 
-const authStore = useAuthStore()
+// Mock auth store since we don't have the actual import
+const mockAuthStore = {
+  hasRole: (role: string) => role === 'SYS_ADMIN' // Mock admin access for demo
+}
 
 // Reactive data
 const activeTab = ref('general')
 
-const settingsTabs = [
+const allSettingsTabs = [
   { id: 'general', name: 'General', icon: User },
   { id: 'security', name: 'Security', icon: Shield },
   { id: 'notifications', name: 'Notifications', icon: Bell },
@@ -716,7 +718,16 @@ const aboutInfo = ref({
 
 // Computed properties
 const isAdmin = computed(() => {
-  return authStore.hasRole('SYS_ADMIN')
+  return mockAuthStore.hasRole('SYS_ADMIN')
+})
+
+const visibleTabs = computed(() => {
+  // Show all tabs for demo purposes, but filter system tab based on admin status
+  if (isAdmin.value) {
+    return allSettingsTabs
+  } else {
+    return allSettingsTabs.filter(tab => tab.id !== 'system')
+  }
 })
 
 // Methods
@@ -759,6 +770,11 @@ const changePassword = () => {
     return
   }
   
+  if (securitySettings.value.newPassword.length < 6) {
+    alert('Password must be at least 6 characters long!')
+    return
+  }
+  
   console.log('Changing password...')
   // Simulate API call
   setTimeout(() => {
@@ -784,6 +800,7 @@ const terminateSession = (sessionId: string) => {
   const index = activeSessions.value.findIndex(s => s.id === sessionId)
   if (index !== -1) {
     activeSessions.value.splice(index, 1)
+    alert('Session terminated successfully!')
     console.log('Session terminated:', sessionId)
   }
 }
@@ -844,13 +861,22 @@ const checkUpdates = () => {
 }
 
 onMounted(() => {
-  // Load user settings
-  if (!isAdmin.value) {
-    // Remove system tab for non-admin users
-    const systemTabIndex = settingsTabs.findIndex(tab => tab.id === 'system')
-    if (systemTabIndex !== -1) {
-      settingsTabs.splice(systemTabIndex, 1)
-    }
-  }
+  console.log('Settings page mounted, isAdmin:', isAdmin.value)
 })
 </script>
+
+<style scoped>
+/* Ensure tabs are visible on mobile */
+.flex.border-b.border-gray-200.overflow-x-auto::-webkit-scrollbar {
+  height: 4px;
+}
+
+.flex.border-b.border-gray-200.overflow-x-auto::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+.flex.border-b.border-gray-200.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+</style>

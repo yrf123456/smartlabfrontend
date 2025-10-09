@@ -45,6 +45,7 @@ export enum Permission {
 
 export interface User {
   id: string
+  username: string
   name: string
   email: string
   avatarUrl: string
@@ -56,6 +57,7 @@ export interface User {
 
 // Registration related types
 export interface RegisterRequest {
+  username: string  // 添加username字段
   name: string
   email: string
   password: string

@@ -13,9 +13,9 @@ export const useAuthStore = defineStore('auth', () => {
   const maxInitializationAttempts = 3
   
   const forceUpdate = async () => {
-    // 可以重新验证用户状态或重新获取用户信息
+    // Re-validate user status or fetch user info
     if (token.value) {
-      await validate() // 假设你有 validate 方法
+      await validate()
     }
   }
   
@@ -23,14 +23,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   const hasRole = (role: UserRole | string) => {
     if (!user.value?.roles) return false
-    // 支持字符串和枚举类型
+    // Support both string and enum types
     return user.value.roles.includes(role as UserRole) || 
            user.value.roles.map(r => r.toString()).includes(role.toString())
   }
 
   const hasPermission = (permission: Permission | string) => {
     if (!user.value?.permissions) return false
-    // 支持字符串和枚举类型
+    // Support both string and enum types
     return user.value.permissions.includes(permission as Permission) ||
            user.value.permissions.map(p => p.toString()).includes(permission.toString())
   }
@@ -39,19 +39,19 @@ export const useAuthStore = defineStore('auth', () => {
     return hasPermission(permission)
   }
 
-  // 检查是否是系统管理员
+  // Check if user is system admin
   const isSystemAdmin = computed(() => hasRole(UserRole.SYSTEM_ADMIN))
   
-  // 检查是否是部门管理员
+  // Check if user is department admin
   const isDepartmentAdmin = computed(() => hasRole(UserRole.DEPARTMENT_ADMIN))
   
-  // 检查是否是教师
+  // Check if user is teacher
   const isTeacher = computed(() => hasRole(UserRole.TEACHER))
   
-  // 检查是否是学生
+  // Check if user is student
   const isStudent = computed(() => hasRole(UserRole.STUDENT))
   
-  // 检查是否是访客
+  // Check if user is visitor
   const isVisitor = computed(() => hasRole(UserRole.VISITOR))
 
   const login = async (email: string, password: string) => {
@@ -61,15 +61,15 @@ export const useAuthStore = defineStore('auth', () => {
       
       const response = await api.auth.login({ email, password })
       
-      // 立即更新状态
+      // Update state immediately
       user.value = response.data.user
       token.value = response.data.token
       
-      // 存储到 localStorage
+      // Store to localStorage
       localStorage.setItem('auth_token', token.value)
       localStorage.setItem('user_info', JSON.stringify(user.value))
       
-      // 确保响应式更新完成
+      // Ensure reactive update completes
       await nextTick()
       
       console.log('✅ AuthStore: Login successful for', user.value?.name)
@@ -78,7 +78,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error: any) {
       console.error('❌ AuthStore: Login failed:', error)
       
-      // 清除可能的部分状态
+      // Clear possible partial state
       user.value = null
       token.value = null
       
@@ -98,15 +98,15 @@ export const useAuthStore = defineStore('auth', () => {
       
       const response = await api.auth.register(data)
       
-      // 立即更新状态
+      // Update state immediately
       user.value = response.data.user
       token.value = response.data.token
       
-      // 存储到 localStorage
+      // Store to localStorage
       localStorage.setItem('auth_token', token.value)
       localStorage.setItem('user_info', JSON.stringify(user.value))
       
-      // 确保响应式更新完成
+      // Ensure reactive update completes
       await nextTick()
       
       console.log('✅ AuthStore: Registration successful for', user.value?.name)
@@ -118,7 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error: any) {
       console.error('❌ AuthStore: Registration failed:', error)
       
-      // 清除可能的部分状态
+      // Clear possible partial state
       user.value = null
       token.value = null
       
@@ -141,17 +141,17 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       console.warn('⚠️ AuthStore: Logout request failed:', error)
     } finally {
-      // 清除状态
+      // Clear state
       user.value = null
       token.value = null
       initialized.value = false
       initializationAttempts.value = 0
       
-      // 清除存储
+      // Clear storage
       localStorage.removeItem('auth_token')
       localStorage.removeItem('user_info')
       
-      // 确保响应式更新完成
+      // Ensure reactive update completes
       await nextTick()
       console.log('✅ AuthStore: Logout completed')
     }
@@ -176,7 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
         return true
       }
       
-      // 解析保存的用户信息
+      // Parse saved user info
       let parsedUser: User
       try {
         parsedUser = JSON.parse(savedUser)
@@ -188,11 +188,11 @@ export const useAuthStore = defineStore('auth', () => {
         return true
       }
       
-      // 设置状态
+      // Set state
       token.value = savedToken
       user.value = parsedUser
       
-      // 在非 Mock 模式下验证 token
+      // Validate token in non-mock mode
       if (import.meta.env.VITE_USE_MOCK !== 'true') {
         try {
           await fetchProfile()
@@ -212,14 +212,14 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       console.error('❌ AuthStore: Initialization failed:', error)
       
-      // 如果还有重试机会
+      // If there are retry attempts left
       if (initializationAttempts.value < maxInitializationAttempts) {
         console.log('🔄 AuthStore: Retrying initialization...')
         await new Promise(resolve => setTimeout(resolve, 1000))
         return await initAuth()
       }
       
-      // 重试次数耗尽，清除状态并标记为已初始化
+      // Retry attempts exhausted, clear state and mark as initialized
       console.error('💥 AuthStore: Max initialization attempts reached, clearing state')
       await logout()
       initialized.value = true
@@ -243,7 +243,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // 强制刷新认证状态（用于调试）
+  // Force refresh auth state (for debugging)
   const refresh = async () => {
     console.log('🔄 AuthStore: Force refresh')
     initialized.value = false
@@ -251,7 +251,7 @@ export const useAuthStore = defineStore('auth', () => {
     await initAuth()
   }
 
-  // 检查认证状态是否有效
+  // Check if auth state is valid
   const validate = async (): Promise<boolean> => {
     if (!isAuthenticated.value) {
       return false
@@ -278,13 +278,13 @@ export const useAuthStore = defineStore('auth', () => {
     hasRole,
     hasPermission,
     can,
-    // 角色检查计算属性
+    // Role check computed properties
     isSystemAdmin,
     isDepartmentAdmin,
     isTeacher,
     isStudent,
     isVisitor,
-    // 方法
+    // Methods
     login,
     register,
     logout,

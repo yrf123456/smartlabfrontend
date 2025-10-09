@@ -18,10 +18,28 @@
         </div>
 
         <form @submit.prevent="handleSubmit" class="space-y-6">
+          <!-- Username -->
+          <div>
+            <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+              Username <span class="text-red-500">*</span>
+            </label>
+            <input
+              id="username"
+              v-model="form.username"
+              type="text"
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              :class="{ 'border-red-300': usernameError }"
+              placeholder="Enter your username"
+            />
+            <p v-if="usernameError" class="mt-1 text-sm text-red-600">{{ usernameError }}</p>
+            <p class="mt-1 text-xs text-gray-500">Username will be used for login and display</p>
+          </div>
+
           <!-- Full Name -->
           <div>
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-              Full Name
+              Full Name <span class="text-red-500">*</span>
             </label>
             <input
               id="name"
@@ -38,7 +56,7 @@
           <!-- Email -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
-              Email
+              Email <span class="text-red-500">*</span>
             </label>
             <input
               id="email"
@@ -87,7 +105,7 @@
           <!-- Password -->
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
-              Password
+              Password <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <input
@@ -109,12 +127,13 @@
               </button>
             </div>
             <p v-if="passwordError" class="mt-1 text-sm text-red-600">{{ passwordError }}</p>
+            <p class="mt-1 text-xs text-gray-500">Password must be at least 6 characters</p>
           </div>
 
           <!-- Confirm Password -->
           <div>
             <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-2">
-              Confirm Password
+              Confirm Password <span class="text-red-500">*</span>
             </label>
             <div class="relative">
               <input
@@ -218,22 +237,25 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 
 // Form validation errors
+const usernameError = ref('')
 const nameError = ref('')
 const emailError = ref('')
 const passwordError = ref('')
 const confirmPasswordError = ref('')
 
 const form = reactive({
+  username: '',
   name: '',
   email: '',
   password: '',
   confirmPassword: '',
-  role: UserRole.STUDENT, // Default role
+  role: UserRole.STUDENT,
   department: ''
 })
 
 const validateForm = () => {
   // Clear previous errors
+  usernameError.value = ''
   nameError.value = ''
   emailError.value = ''
   passwordError.value = ''
@@ -241,6 +263,18 @@ const validateForm = () => {
   error.value = ''
 
   let isValid = true
+
+  // Validate username
+  if (!form.username.trim()) {
+    usernameError.value = 'Username is required'
+    isValid = false
+  } else if (form.username.trim().length < 3) {
+    usernameError.value = 'Username must be at least 3 characters'
+    isValid = false
+  } else if (!/^[a-zA-Z0-9_-]+$/.test(form.username)) {
+    usernameError.value = 'Username can only contain letters, numbers, underscores and hyphens'
+    isValid = false
+  }
 
   // Validate name
   if (!form.name.trim()) {
@@ -288,16 +322,9 @@ const handleSubmit = async () => {
     loading.value = true
     error.value = ''
 
-    console.log('DEBUG: authStore object:', authStore)
-    console.log('DEBUG: authStore.register exists?', typeof authStore.register)
-    
-    if (typeof authStore.register !== 'function') {
-      console.error('authStore.register is not a function!')
-      return
-    }
-
-    console.log('📝 Attempting registration...')
+    console.log('🔐 Attempting registration...')
     const result = await authStore.register({
+      username: form.username.trim(),
       name: form.name.trim(),
       email: form.email.trim(),
       password: form.password,

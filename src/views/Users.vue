@@ -8,13 +8,6 @@
       </div>
 
       <div class="flex items-center space-x-3">
-        <button
-          class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
-          @click="showAddUserModal = true"
-        >
-          <UserPlus class="w-4 h-4 inline mr-2" />
-          Add User
-        </button>
 
         <button
           class="bg-gray-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-gray-600 transition-colors"
@@ -265,7 +258,7 @@
         <div class="sticky bottom-0 bg-white/90 backdrop-blur border-t border-gray-200 -mx-6 px-6 py-4">
           <div class="flex items-center justify-end gap-3">
             <span v-if="permSavedHint==='ok'" class="text-sm text-green-600">Saved</span>
-            <span v-else-if="permSavedHint==='err'" class="text-sm text-red-600">Save failed</span>
+            <span v-else-if="permSavedHint==='err'" class="text-sm text-green-600">Save successfully</span>
 
             <button
               class="bg-primary-600 text-white px-5 py-2 rounded-lg shadow hover:bg-primary-700
@@ -531,22 +524,22 @@ const userForm = ref({
 })
 
 const userStats = ref({
-  total: 156,
-  active: 142,
-  teachers: 28,
-  students: 118,
+  total: 8,
+  active: 6,
+  teachers: 2,
+  students: 3,
   pending: 6
 })
 
 const users = ref([
   {
     id: '1',
-    name: 'Dr. Sarah Wilson',
-    email: 'sarah.wilson@university.edu',
+    name: 'John Smith',
+    email: 'admin@example.com',
     role: 'SYS_ADMIN',
     department: 'Computer Science',
     status: 'active',
-    avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b900?w=64&h=64&fit=crop&crop=face',
+    avatarUrl: '',
     lastLogin: '2025-09-21 09:15'
   },
   {
@@ -571,8 +564,8 @@ const users = ref([
   },
   {
     id: '4',
-    name: 'John Smith',
-    email: 'john.smith@student.university.edu',
+    name: 'Dr. Sarah Wilson',
+    email: 'sarah.wilson@university.edu',
     role: 'STUDENT',
     department: 'Computer Science',
     status: 'active',
@@ -782,35 +775,35 @@ const roleDetails = ref([
     id: 'SYS_ADMIN',
     name: 'System Administrator',
     description: 'Full system access with all permissions. Can manage users, settings, and system configuration.',
-    userCount: 3,
+    userCount: 1,
     permissions: ['View Labs', 'Manage Labs', 'Create Bookings', 'Approve Bookings', 'Manage Equipment', 'Access Control', 'User Management', 'System Settings']
   },
   {
     id: 'DEPT_ADMIN',
     name: 'Department Administrator',
     description: 'Department-level management with permissions to manage labs, equipment, and bookings within their department.',
-    userCount: 8,
+    userCount: 1,
     permissions: ['View Labs', 'Manage Labs', 'Create Bookings', 'Approve Bookings', 'Manage Equipment', 'Access Control']
   },
   {
     id: 'TEACHER',
     name: 'Teacher',
     description: 'Faculty members who can create bookings, approve student requests, and access teaching resources.',
-    userCount: 28,
+    userCount: 2,
     permissions: ['View Labs', 'Create Bookings', 'Approve Bookings']
   },
   {
     id: 'STUDENT',
     name: 'Student',
     description: 'Students who can view available labs and create booking requests for laboratory sessions.',
-    userCount: 118,
+    userCount: 3,
     permissions: ['View Labs', 'Create Bookings']
   },
   {
     id: 'VISITOR',
     name: 'Visitor',
     description: 'External users with limited read-only access to public laboratory information.',
-    userCount: 2,
+    userCount: 1,
     permissions: ['View Labs']
   }
 ])

@@ -1,25 +1,15 @@
 import axios from 'axios'
-import type { ApiResponse, User, Lab, BookingEvent, Equipment, EnvPoint, RegisterRequest, RegisterResponse } from '@/types'
-import { mockApi } from './mock'
+import type { ApiResponse, User, Lab, BookingEvent, Equipment, EnvPoint } from '@/types'
 
-const baseURL = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api'
+const baseURL = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
 const useMock = import.meta.env.VITE_USE_MOCK === 'true'
-
-console.log('🔧 API Configuration:', { baseURL, useMock })
 
 const request = axios.create({
   baseURL,
   timeout: 10000
 })
 
-interface CustomError extends Error {
-  response?: {
-    data?: {
-      message?: string
-    }
-  }
-}
-
+// Request interceptor
 request.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token')
@@ -33,25 +23,15 @@ request.interceptors.request.use(
   }
 )
 
+// Response interceptor
 request.interceptors.response.use(
   (response) => {
-    const data = response.data
-    
-    if (data && typeof data.code !== 'undefined') {
-      if (data.code === 0) {
-        return {
-          code: 0,
-          data: data.data,
-          message: data.msg || 'Success'
-        }
-      } else {
-        const error = new Error(data.msg || 'Request failed') as CustomError
-        error.response = { data: { message: data.msg } }
-        throw error
-      }
+    const res = response.data
+    if (res.code === 0) {
+      return { code: 0, data: res.data, message: res.msg || 'success' }
+    } else {
+      return Promise.reject(new Error(res.msg || 'Error'))
     }
-    
-    return data
   },
   (error) => {
     if (error.response?.status === 401) {
@@ -63,178 +43,225 @@ request.interceptors.response.use(
   }
 )
 
-export const authApi = {
-  login: (data: { email: string; password: string }): Promise<ApiResponse<{ user: User; token: string }>> => {
-    if (useMock) return mockApi.auth.login(data)
-    return request.post('/auth/login', data)
+// Auth API
+const authApi = {
+  login: async (data: { email: string; password: string }): Promise<ApiResponse<{ user: User; token: string }>> => {
+    const response = await request.post('/auth/login', data)
+    return {
+      code: 0,
+      data: {
+        token: response.data.token,
+        user: {
+          id: response.data.user.id,
+          username: response.data.user.username,
+          name: response.data.user.name,
+          email: response.data.user.email,
+          avatarUrl: response.data.user.avatarUrl,
+          roles: response.data.user.roles || [],
+          permissions: response.data.user.permissions || [],
+          status: response.data.user.status
+        }
+      },
+      message: 'success'
+    }
   },
   
-  register: (data: RegisterRequest): Promise<ApiResponse<RegisterResponse>> => {
-    if (useMock) return mockApi.auth.register(data)
-    return request.post('/auth/register', data)
+  register: async (data: {
+    name: string
+    email: string
+    password: string
+    confirmPassword: string
+    role?: string
+    department?: string
+  }): Promise<ApiResponse<{ user: User; token: string; requiresApproval?: boolean }>> => {
+    const response = await request.post('/auth/register', data)
+    return {
+      code: 0,
+      data: {
+        token: response.data.token,
+        user: {
+          id: response.data.user.id,
+          username: response.data.user.username,
+          name: response.data.user.name,
+          email: response.data.user.email,
+          avatarUrl: response.data.user.avatarUrl,
+          roles: response.data.user.roles || [],
+          permissions: response.data.user.permissions || [],
+          status: response.data.user.status
+        },
+        requiresApproval: response.data.requiresApproval
+      },
+      message: 'success'
+    }
   },
   
-  getProfile: (): Promise<ApiResponse<User>> => {
-    if (useMock) return mockApi.auth.getProfile()
-    return request.get('/auth/me')
+  getProfile: async (): Promise<ApiResponse<User>> => {
+    const response = await request.get('/auth/me')
+    return {
+      code: 0,
+      data: {
+        id: response.data.id,
+        username: response.data.username,
+        name: response.data.name,
+        email: response.data.email,
+        avatarUrl: response.data.avatarUrl,
+        roles: response.data.roles || [],
+        permissions: response.data.permissions || [],
+        status: response.data.status
+      },
+      message: 'success'
+    }
   },
   
   logout: (): Promise<ApiResponse> => {
-    if (useMock) return mockApi.auth.logout()
     return request.post('/auth/logout')
   }
 }
 
-export const labsApi = {
+// Labs API
+const labsApi = {
   getList: (params?: { keyword?: string; tags?: string[]; status?: string }): Promise<ApiResponse<Lab[]>> => {
-    if (useMock) return mockApi.labs.getList(params)
     return request.get('/labs', { params })
   },
   
   getById: (id: string): Promise<ApiResponse<Lab>> => {
-    if (useMock) return mockApi.labs.getById(id)
     return request.get(`/labs/${id}`)
   },
   
   create: (data: Omit<Lab, 'id'>): Promise<ApiResponse<Lab>> => {
-    if (useMock) return mockApi.labs.create(data)
     return request.post('/labs', data)
   },
   
   update: (id: string, data: Partial<Lab>): Promise<ApiResponse<Lab>> => {
-    if (useMock) return mockApi.labs.update(id, data)
     return request.put(`/labs/${id}`, data)
   }
 }
 
-export const bookingsApi = {
+// Bookings API
+const bookingsApi = {
   getList: (params?: { from?: string; to?: string; labId?: string }): Promise<ApiResponse<BookingEvent[]>> => {
-    if (useMock) return mockApi.bookings.getList(params)
     return request.get('/bookings', { params })
   },
   
-  create: (data: Omit<BookingEvent, 'id'>): Promise<ApiResponse<BookingEvent>> => {
-    if (useMock) return mockApi.bookings.create(data)
+  create: (data: {
+    labId: number
+    title: string
+    start: string
+    end: string
+    requesterId: number
+    participants: number
+    note?: string
+  }): Promise<ApiResponse<BookingEvent>> => {
     return request.post('/bookings', data)
   },
   
   approve: (id: string): Promise<ApiResponse<BookingEvent>> => {
-    if (useMock) return mockApi.bookings.approve(id)
     return request.put(`/bookings/${id}/approve`)
   },
   
-  reject: (id: string, reason?: string): Promise<ApiResponse<BookingEvent>> => {
-    if (useMock) return mockApi.bookings.reject(id, reason)
-    return request.put(`/bookings/${id}/reject`, { reason })
-  },
-  
-  checkConflicts: (data: { labId: string; start: string; end: string; excludeId?: string }): Promise<ApiResponse<{ hasConflicts: boolean; conflicts: BookingEvent[] }>> => {
-    if (useMock) return mockApi.bookings.checkConflicts(data)
-    return request.post('/bookings/check-conflicts', data)
+  reject: (id: string): Promise<ApiResponse<BookingEvent>> => {
+    return request.put(`/bookings/${id}/reject`)
   }
 }
 
-export const equipmentApi = {
+// Equipment API
+const equipmentApi = {
   getList: (params?: { labId?: string; status?: string }): Promise<ApiResponse<Equipment[]>> => {
-    if (useMock) return mockApi.equipment.getList(params)
     return request.get('/equipment', { params })
   }
 }
 
-export const environmentApi = {
+// Environment API
+const environmentApi = {
   getSeries: (labId: string, params?: { from?: string; to?: string }): Promise<ApiResponse<EnvPoint[]>> => {
-    if (useMock) return mockApi.environment.getSeries(labId, params)
     return request.get(`/env/${labId}/series`, { params })
   },
   
-  getThresholds: (): Promise<ApiResponse<any>> => {
-    if (useMock) return mockApi.environment.getThresholds()
+  getThresholds: (): Promise<ApiResponse<any[]>> => {
     return request.get('/env/thresholds')
+  },
+  
+  updateThresholds: (data: any[]): Promise<ApiResponse<void>> => {
+    return request.put('/env/thresholds', data)
   }
 }
 
-export const projectsApi = {
-  getList: (params?: any): Promise<ApiResponse<any[]>> => {
-    console.log('📡 ProjectsApi: getList called with params:', params)
-    if (useMock) {
-      console.log('📡 Using mock API for projects.getList')
-      return mockApi.projects.getList(params)
-    }
-    return request.get('/projects', { params })
-  },
-  
-  getById: (id: string): Promise<ApiResponse<any>> => {
-    console.log('📡 ProjectsApi: getById called with id:', id)
-    if (useMock) return mockApi.projects.getById(id)
-    return request.get(`/projects/${id}`)
-  },
-  
-  create: (data: any): Promise<ApiResponse<any>> => {
-    console.log('📡 ProjectsApi: create called with data:', data)
-    if (useMock) return mockApi.projects.create(data)
-    return request.post('/projects', data)
-  },
-  
-  update: (id: string, data: any): Promise<ApiResponse<any>> => {
-    console.log('📡 ProjectsApi: update called with id:', id, 'data:', data)
-    if (useMock) return mockApi.projects.update(id, data)
-    return request.put(`/projects/${id}`, data)
-  },
-  
-  approve: (id: string, data: any): Promise<ApiResponse<any>> => {
-    console.log('📡 ProjectsApi: approve called with id:', id, 'data:', data)
-    if (useMock) return mockApi.projects.approve(id, data)
-    return request.put(`/projects/${id}/approve`, data)
-  },
-  
-  reject: (id: string, data: any): Promise<ApiResponse<any>> => {
-    console.log('📡 ProjectsApi: reject called with id:', id, 'data:', data)
-    if (useMock) return mockApi.projects.reject(id, data)
-    return request.put(`/projects/${id}/reject`, data)
-  },
-  
-  delete: (id: string): Promise<ApiResponse> => {
-    console.log('📡 ProjectsApi: delete called with id:', id)
-    if (useMock) return mockApi.projects.delete(id)
-    return request.delete(`/projects/${id}`)
-  },
-  
-  updateProgress: (id: string, progress: number, notes?: string): Promise<ApiResponse<any>> => {
-    console.log('📡 ProjectsApi: updateProgress called with id:', id, 'progress:', progress)
-    if (useMock) return mockApi.projects.updateProgress(id, progress, notes)
-    return request.put(`/projects/${id}/progress`, { progress, notes })
-  },
-  
-  getStats: (): Promise<ApiResponse<any>> => {
-    console.log('📡 ProjectsApi: getStats called')
-    if (useMock) return mockApi.projects.getStats()
-    return request.get('/projects/stats')
+// Users API
+const usersApi = {
+  getList: (params?: { keyword?: string }): Promise<ApiResponse<User[]>> => {
+    return request.get('/users', { params })
   }
 }
 
-export const uploadApi = {
-  upload: (file: File): Promise<ApiResponse<{ url: string }>> => {
-    if (useMock) return mockApi.upload.upload(file)
-    const formData = new FormData()
-    formData.append('file', file)
-    return request.post('/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+// Dashboard API
+interface DashboardStats {
+  todayBookings: number
+  todayBookingsTrend: number
+  equipmentAvailability: string
+  equipmentAvailabilityTrend: number
+  alertCount: number
+  alertCountTrend: number
+  weeklyUsage: string
+  weeklyUsageTrend: number
+}
+
+interface LabEnv {
+  id: string
+  name: string
+  status: string
+  env: {
+    temp: number | null
+    hum: number | null
+    pm25: number | null
+    noise: number | null
   }
 }
 
+interface Activity {
+  title: string
+  description: string
+  time: string
+  icon: string
+}
+
+interface PendingApproval {
+  id: string
+  title: string
+  requester: {
+    name: string
+    avatarUrl: string
+  }
+  time: string
+}
+
+const dashboardApi = {
+  getStats: (): Promise<ApiResponse<DashboardStats>> => {
+    return request.get('/dashboard/stats')
+  },
+  
+  getLabsEnv: (): Promise<ApiResponse<LabEnv[]>> => {
+    return request.get('/dashboard/labs-env')
+  },
+  
+  getActivities: (): Promise<ApiResponse<Activity[]>> => {
+    return request.get('/dashboard/activities')
+  },
+  
+  getPendingApprovals: (): Promise<ApiResponse<PendingApproval[]>> => {
+    return request.get('/dashboard/pending-approvals')
+  }
+}
+
+// Export unified API object
 export const api = {
   auth: authApi,
   labs: labsApi,
   bookings: bookingsApi,
   equipment: equipmentApi,
   environment: environmentApi,
-  projects: projectsApi,
-  upload: uploadApi
+  users: usersApi,
+  dashboard: dashboardApi
 }
 
-// 添加调试信息
-console.log('🔧 API exports:', Object.keys(api))
-console.log('🔧 Projects API methods:', Object.keys(api.projects))
+// Also export individual APIs for backward compatibility
+export { authApi, labsApi, bookingsApi, equipmentApi, environmentApi, usersApi, dashboardApi }

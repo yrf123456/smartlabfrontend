@@ -41,7 +41,7 @@ export const useLabStore = defineStore('lab', () => {
   })
 
   const fetchLabs = async (force = false) => {
-    // 如果已经初始化且不强制刷新，则不重复请求
+    // If already initialized and not forcing refresh, skip duplicate requests
     if (initialized.value && !force && labs.value.length > 0) {
       console.log('✅ Labs already loaded, skipping fetch')
       return labs.value
@@ -54,20 +54,20 @@ export const useLabStore = defineStore('lab', () => {
       
       const response = await api.labs.getList(filters.value)
       
-      // 确保数据是响应式的
+      // Ensure data is reactive
       labs.value = response.data || []
       initialized.value = true
       
       console.log('✅ Labs fetched successfully:', labs.value.length, 'items')
       
-      // 强制触发响应式更新
+      // Force trigger reactive update
       await nextTick()
       
       return labs.value
     } catch (err: any) {
       console.error('❌ Failed to fetch labs:', err)
-      error.value = err.response?.data?.message || err.message || '获取实验室列表失败'
-      labs.value = [] // 确保清空之前的数据
+      error.value = err.response?.data?.message || err.message || 'Failed to fetch laboratory list'
+      labs.value = [] // Ensure clear previous data
       throw err
     } finally {
       loading.value = false
@@ -78,20 +78,20 @@ export const useLabStore = defineStore('lab', () => {
     try {
       console.log('📡 Fetching lab by ID:', id)
       
-      // 先从现有数据中查找
+      // First look in existing data
       const existingLab = labs.value.find(lab => lab.id === id)
       if (existingLab) {
         console.log('✅ Lab found in store:', existingLab.name)
         return existingLab
       }
       
-      // 如果没有找到，从API获取
+      // If not found, fetch from API
       const response = await api.labs.getById(id)
       const lab = response.data
       
       console.log('✅ Lab fetched from API:', lab.name)
       
-      // 更新store中的数据
+      // Update data in store
       const index = labs.value.findIndex(l => l.id === id)
       if (index > -1) {
         labs.value[index] = lab
@@ -103,7 +103,7 @@ export const useLabStore = defineStore('lab', () => {
       return lab
     } catch (err: any) {
       console.error('❌ Failed to fetch lab:', err)
-      error.value = err.response?.data?.message || err.message || '获取实验室详情失败'
+      error.value = err.response?.data?.message || err.message || 'Failed to fetch laboratory details'
       throw err
     }
   }
@@ -114,7 +114,7 @@ export const useLabStore = defineStore('lab', () => {
       const response = await api.labs.create(lab)
       const newLab = response.data
       
-      // 添加到列表
+      // Add to list
       labs.value.unshift(newLab)
       
       console.log('✅ Lab created successfully:', newLab.name)
@@ -123,7 +123,7 @@ export const useLabStore = defineStore('lab', () => {
       return newLab
     } catch (err: any) {
       console.error('❌ Failed to create lab:', err)
-      error.value = err.response?.data?.message || err.message || '创建实验室失败'
+      error.value = err.response?.data?.message || err.message || 'Failed to create laboratory'
       throw err
     }
   }
@@ -134,7 +134,7 @@ export const useLabStore = defineStore('lab', () => {
       const response = await api.labs.update(id, lab)
       const updatedLab = response.data
       
-      // 更新列表中的数据
+      // Update data in list
       const index = labs.value.findIndex(l => l.id === id)
       if (index > -1) {
         labs.value[index] = updatedLab
@@ -146,7 +146,7 @@ export const useLabStore = defineStore('lab', () => {
       return updatedLab
     } catch (err: any) {
       console.error('❌ Failed to update lab:', err)
-      error.value = err.response?.data?.message || err.message || '更新实验室失败'
+      error.value = err.response?.data?.message || err.message || 'Failed to update laboratory'
       throw err
     }
   }
@@ -178,12 +178,12 @@ export const useLabStore = defineStore('lab', () => {
     await fetchLabs(true)
   }
 
-  // 清除错误状态
+  // Clear error state
   const clearError = () => {
     error.value = null
   }
 
-  // 重置store状态
+  // Reset store state
   const reset = () => {
     console.log('🔄 Resetting lab store')
     labs.value = []
