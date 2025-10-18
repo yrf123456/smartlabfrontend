@@ -29,16 +29,6 @@
         </router-link>
       </div>
 
-      <!-- Mobile-only contact admin -->
-      <div class="lg:hidden p-4 border-t border-gray-200 mt-4">
-        <button 
-          class="flex items-center space-x-3 px-3 py-2.5 text-sm font-medium rounded-xl text-gray-700 hover:bg-gray-50 w-full"
-          @click="handleContactAdmin"
-        >
-          <Mail class="w-5 h-5" />
-          <span>{{ $t('settings.contact') }}</span>
-        </button>
-      </div>
     </div>
 
     <!-- User info -->
@@ -86,8 +76,7 @@ import {
   Users, 
   FileBarChart, 
   Settings,
-  Beaker,
-  Mail
+  Beaker
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
@@ -159,7 +148,7 @@ const menuItems = [
     path: '/settings',
     title: 'nav.settings',
     icon: Settings,
-    roles: [UserRole.SYSTEM_ADMIN]
+    roles: []
   }
 ]
 
@@ -219,14 +208,6 @@ const getRoleText = (role: UserRole | string) => {
     default:
       return roleStr
   }
-}
-
-const handleContactAdmin = () => {
-  uiStore.addNotification({
-    type: 'info',
-    title: 'Contact admin',
-    message: 'Please email admin@example.com for assistance'
-  })
 }
 
 watch(

@@ -158,11 +158,8 @@ defineEmits<Emits>()
 const authStore = useAuthStore()
 
 const canEdit = computed(() => {
-  // 支持多种角色名称格式
-  return authStore.hasRole('SYS_ADMIN') || 
-         authStore.hasRole('SYSTEM_ADMIN') ||
-         authStore.hasRole('DEPT_ADMIN') ||
-         authStore.hasRole('DEPARTMENT_ADMIN')
+  // Use permission check instead of role check
+  return authStore.hasPermission('LAB_EDIT')
 })
 
 const equipmentCount = computed(() => {

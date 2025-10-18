@@ -101,7 +101,7 @@
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-600">Team Size</p>
-              <p class="text-2xl font-bold text-purple-600">{{ project.teamMembers.length + 1 }}</p>
+              <p class="text-2xl font-bold text-purple-600">{{ teamMembersDetails.length + 1 }}</p>
             </div>
             <Users class="w-8 h-8 text-purple-600" />
           </div>
@@ -284,19 +284,34 @@
                 </div>
               </div>
               
-              <!-- Team Members -->
+              <!-- Team Members - Loading -->
+              <div v-if="loadingTeamMembers" class="text-center py-2">
+                <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-500 mx-auto"></div>
+                <p class="text-xs text-gray-500 mt-1">Loading team members...</p>
+              </div>
+              
+              <!-- Team Members - Real Data -->
               <div 
-                v-for="memberId in project.teamMembers" 
-                :key="memberId"
+                v-else
+                v-for="member in teamMembersDetails" 
+                :key="member.id"
                 class="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
               >
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-600 flex items-center justify-center text-white text-sm font-medium">
-                  T
+                <div 
+                  class="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
+                  :style="{ background: getAvatarColor(member.name) }"
+                >
+                  {{ member.name.charAt(0) }}
                 </div>
                 <div class="flex-1">
-                  <p class="text-sm font-medium text-gray-900">Team Member {{ memberId }}</p>
-                  <p class="text-xs text-gray-500">Member</p>
+                  <p class="text-sm font-medium text-gray-900">{{ member.name }}</p>
+                  <p class="text-xs text-gray-500">{{ member.email }}</p>
                 </div>
+              </div>
+              
+              <!-- No Team Members -->
+              <div v-if="!loadingTeamMembers && teamMembersDetails.length === 0" class="text-center py-2">
+                <p class="text-xs text-gray-500">No team members added yet</p>
               </div>
             </div>
           </div>
@@ -377,7 +392,8 @@ import {
 import { useProjectStore } from '@/stores/project'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
-import type { Project } from '@/types'
+import { api } from '@/api'
+import type { Project, User } from '@/types'
 import { UserRole } from '@/types'
 
 const route = useRoute()
@@ -397,6 +413,11 @@ const showApprovalModal = ref(false)
 const approving = ref(false)
 const rejecting = ref(false)
 
+// Team members state
+const teamMembersDetails = ref<User[]>([])
+const loadingTeamMembers = ref(false)
+const allUsers = ref<User[]>([])
+
 const approvalForm = ref({
   comments: ''
 })
@@ -408,23 +429,31 @@ const projectPhases = [
   { key: 'archive', label: 'Archive', icon: Archive }
 ]
 
-// Computed properties
+const canView = computed(() => authStore.hasPermission('PROJECT_VIEW'))
+const canEdit = computed(() => authStore.hasPermission('PROJECT_EDIT'))
+const canApprove = computed(() => authStore.hasPermission('PROJECT_APPROVE'))
+const canDelete = computed(() => authStore.hasPermission('PROJECT_DELETE'))
+
 const canEditProject = computed(() => {
-  if (!project.value) return false
+  if (!project.value || !canEdit.value) return false
   
-  if (authStore.hasRole(UserRole.SYSTEM_ADMIN) || authStore.hasRole(UserRole.DEPARTMENT_ADMIN)) {
+  // Admin and Department Admin can edit any project
+  if (authStore.hasRole('ADMIN') || authStore.hasRole('DEPARTMENT_ADMIN')) {
     return true
   }
-  if (authStore.hasRole(UserRole.TEACHER)) {
+  
+  // Teachers can only edit their own projects
+  if (authStore.hasRole('TEACHER')) {
     return project.value.principalInvestigator.id === authStore.user?.id
   }
+  
   return false
 })
 
 const canApproveProject = computed(() => {
-  if (!project.value) return false
+  if (!project.value || !canApprove.value) return false
   
-  return (authStore.hasRole(UserRole.SYSTEM_ADMIN) || authStore.hasRole(UserRole.DEPARTMENT_ADMIN)) && 
+  return (authStore.hasRole('ADMIN') || authStore.hasRole('DEPARTMENT_ADMIN')) && 
          project.value.status === 'pending'
 })
 
@@ -519,6 +548,27 @@ const formatDate = (dateString: string) => {
   return new Date(dateString).toLocaleDateString()
 }
 
+const getAvatarColor = (name: string) => {
+  // Generate a consistent color based on the name
+  const colors = [
+    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+    'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)'
+  ]
+  
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  
+  return colors[Math.abs(hash) % colors.length]
+}
+
 const editProject = () => {
   router.push(`/projects/${projectId.value}/edit`)
 }
@@ -583,12 +633,43 @@ const rejectProject = async () => {
   }
 }
 
+const loadTeamMembers = async () => {
+  if (!project.value || !project.value.teamMembers || project.value.teamMembers.length === 0) {
+    teamMembersDetails.value = []
+    return
+  }
+  
+  try {
+    loadingTeamMembers.value = true
+    
+    // Fetch all users if not already loaded
+    if (allUsers.value.length === 0) {
+      const response = await api.users.getList()
+      allUsers.value = response.data || []
+    }
+    
+    // Filter to get only team members
+    teamMembersDetails.value = allUsers.value.filter(user => 
+      project.value!.teamMembers.includes(user.id)
+    )
+    
+  } catch (error) {
+    console.error('Failed to load team members:', error)
+    teamMembersDetails.value = []
+  } finally {
+    loadingTeamMembers.value = false
+  }
+}
+
 const loadProject = async () => {
   try {
     loading.value = true
     error.value = null
     
     project.value = await projectStore.fetchProjectById(projectId.value)
+    
+    // Load team members details
+    await loadTeamMembers()
     
   } catch (err: any) {
     error.value = err.message || 'Failed to load project details'
@@ -598,7 +679,27 @@ const loadProject = async () => {
   }
 }
 
-onMounted(() => {
-  loadProject()
+onMounted(async () => {
+  console.log('🚀 Project Detail page mounted')
+  console.log('📋 Project ID:', projectId.value)
+  console.log('👤 Current user:', authStore.user?.name)
+  console.log('🔑 User permissions:', authStore.user?.permissions)
+  console.log('📋 Permission check:', {
+    canView: canView.value,
+    canEdit: canEdit.value,
+    canApprove: canApprove.value,
+    canDelete: canDelete.value
+  })
+
+  // Permission check: Must have PROJECT_VIEW permission
+  if (!canView.value) {
+    console.warn('❌ Access denied: User does not have PROJECT_VIEW permission')
+    router.push('/dashboard')
+    return
+  }
+
+  console.log('✅ Permission check passed: PROJECT_VIEW')
+  
+  await loadProject()
 })
 </script>

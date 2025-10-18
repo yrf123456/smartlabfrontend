@@ -14,25 +14,60 @@ export const useAuthStore = defineStore('auth', () => {
   
   const forceUpdate = async () => {
     // Re-validate user status or fetch user info
+    console.log('🔄 AuthStore: Force update triggered')
     if (token.value) {
-      await validate()
+      await fetchProfile()
+      await nextTick()
+      console.log('✅ AuthStore: Force update completed')
+      console.log('👤 Current user:', user.value?.name)
+      console.log('🔐 Current permissions:', user.value?.permissions)
     }
   }
   
   const isAuthenticated = computed(() => !!token.value && !!user.value)
 
   const hasRole = (role: UserRole | string) => {
-    if (!user.value?.roles) return false
-    // Support both string and enum types
-    return user.value.roles.includes(role as UserRole) || 
-           user.value.roles.map(r => r.toString()).includes(role.toString())
+    if (!user.value?.roles) {
+      console.warn('⚠️ hasRole: No user or roles')
+      return false
+    }
+    
+    // Convert role to string for comparison
+    const roleStr = typeof role === 'string' ? role : role.toString()
+    
+    // Create role aliases for backend compatibility
+    const roleAliases: { [key: string]: string[] } = {
+      'SYSTEM_ADMIN': ['ADMIN', 'SYSTEM_ADMIN'],
+      'ADMIN': ['ADMIN', 'SYSTEM_ADMIN']
+    }
+    
+    // Get possible role values (include aliases)
+    const possibleRoles = roleAliases[roleStr] || [roleStr]
+    
+    // Check if user has the role (support both enum and string)
+    const hasRoleResult = user.value.roles.some(userRole => {
+      const userRoleStr = typeof userRole === 'string' ? userRole : userRole.toString()
+      return possibleRoles.includes(userRoleStr)
+    })
+    
+    return hasRoleResult
   }
 
   const hasPermission = (permission: Permission | string) => {
-    if (!user.value?.permissions) return false
+    if (!user.value?.permissions) {
+      console.warn('⚠️ hasPermission: No user or permissions')
+      return false
+    }
+    
+    console.log('🔍 Checking permission:', permission)
+    console.log('👤 User permissions:', user.value.permissions)
+    
     // Support both string and enum types
-    return user.value.permissions.includes(permission as Permission) ||
+    const result = user.value.permissions.includes(permission as Permission) ||
            user.value.permissions.map(p => p.toString()).includes(permission.toString())
+    
+    console.log('✓ Permission check result:', result)
+    return result
   }
 
   const can = (permission: Permission | string) => {
@@ -73,6 +108,8 @@ export const useAuthStore = defineStore('auth', () => {
       await nextTick()
       
       console.log('✅ AuthStore: Login successful for', user.value?.name)
+      console.log('👤 User roles:', user.value?.roles)
+      console.log('🔐 User permissions:', user.value?.permissions)
       
       return { success: true }
     } catch (error: any) {
@@ -192,6 +229,11 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = savedToken
       user.value = parsedUser
       
+      console.log('✅ AuthStore: Auth restored from storage')
+      console.log('👤 User:', user.value?.name)
+      console.log('🔑 Roles:', user.value?.roles)
+      console.log('🔐 Permissions:', user.value?.permissions)
+      
       // Validate token in non-mock mode
       if (import.meta.env.VITE_USE_MOCK !== 'true') {
         try {
@@ -204,7 +246,6 @@ export const useAuthStore = defineStore('auth', () => {
         }
       }
       
-      console.log('✅ AuthStore: Auth initialized from storage for', user.value?.name)
       initialized.value = true
       await nextTick()
       return true
@@ -232,11 +273,14 @@ export const useAuthStore = defineStore('auth', () => {
       console.log('👤 AuthStore: Fetching profile...')
       const response = await api.auth.getProfile()
       
+      const oldPermissions = user.value?.permissions || []
       user.value = response.data
       localStorage.setItem('user_info', JSON.stringify(user.value))
       
       await nextTick()
       console.log('✅ AuthStore: Profile updated for', user.value?.name)
+      console.log('🔐 Old permissions:', oldPermissions)
+      console.log('🔐 New permissions:', user.value?.permissions)
     } catch (error) {
       console.error('❌ AuthStore: Failed to fetch profile:', error)
       throw error

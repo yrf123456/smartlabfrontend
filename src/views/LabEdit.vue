@@ -28,12 +28,33 @@
       <!-- Error State -->
       <div v-else-if="error" class="p-6 text-center">
         <div class="text-red-500 mb-4">
-          <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
+          <AlertCircle class="w-12 h-12 mx-auto mb-2" />
         </div>
         <h3 class="text-lg font-medium text-gray-900 mb-2">Error Loading Laboratory</h3>
         <p class="text-gray-600 mb-4">{{ error }}</p>
+        <button
+          @click="$router.push('/labs')"
+          class="px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors"
+        >
+          Back to Labs
+        </button>
+      </div>
+
+      <!-- Permission Denied State -->
+      <div v-else-if="!hasRequiredPermission" class="p-6 text-center">
+        <div class="text-yellow-500 mb-4">
+          <Shield class="w-12 h-12 mx-auto mb-2" />
+        </div>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Permission Denied</h3>
+        <p class="text-gray-600 mb-2">
+          You do not have permission to {{ isCreateMode ? 'create' : 'edit' }} laboratories.
+        </p>
+        <p class="text-sm text-gray-500 mb-4">
+          Required permission: {{ isCreateMode ? 'LAB_CREATE' : 'LAB_EDIT' }}
+        </p>
+        <p class="text-sm text-gray-500 mb-6">
+          Please contact your administrator if you believe this is an error.
+        </p>
         <button
           @click="$router.push('/labs')"
           class="px-4 py-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors"
@@ -56,20 +77,33 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ChevronRight } from 'lucide-vue-next'
+import { ChevronRight, AlertCircle, Shield } from 'lucide-vue-next'
 import { useLabStore } from '@/stores/lab'
+import { useAuthStore } from '@/stores/auth'
 import LabForm from '@/components/lab/LabForm.vue'
 import type { Lab } from '@/types'
 
 const route = useRoute()
 const router = useRouter()
 const labStore = useLabStore()
+const authStore = useAuthStore()
 
 const lab = ref<Lab | null>(null)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
 const isCreateMode = computed(() => route.params.labId === 'new')
+
+// Permission-based access control
+const canCreate = computed(() => authStore.hasPermission('LAB_CREATE'))
+const canEdit = computed(() => authStore.hasPermission('LAB_EDIT'))
+
+const hasRequiredPermission = computed(() => {
+  if (isCreateMode.value) {
+    return canCreate.value
+  }
+  return canEdit.value
+})
 
 const fetchLab = async () => {
   // If creating new lab, no need to fetch
@@ -82,16 +116,17 @@ const fetchLab = async () => {
     error.value = null
     
     const labId = route.params.labId as string
-    console.log('Lab ID from route:', labId) // Debug log
+    console.log('📡 Fetching lab ID:', labId)
     
     if (!labId || labId === 'new') {
-      console.log('Skipping fetch - create mode or invalid ID')
+      console.log('⭐️ Skipping fetch - create mode or invalid ID')
       return
     }
     
     lab.value = await labStore.fetchLabById(labId)
+    console.log('✅ Lab data loaded:', lab.value.name)
   } catch (err: any) {
-    console.error('Failed to fetch lab:', err)
+    console.error('❌ Failed to fetch lab:', err)
     error.value = err.message || 'Failed to load laboratory data'
   } finally {
     loading.value = false
@@ -101,34 +136,62 @@ const fetchLab = async () => {
 const handleSubmit = async (labData: Omit<Lab, 'id'>) => {
   try {
     if (isCreateMode.value) {
-      // Create new lab
+      console.log('🆕 Creating new lab...')
       await labStore.createLab(labData)
+      console.log('✅ Lab created successfully')
       router.push('/labs')
     } else {
-      // Update existing lab
       const labId = route.params.labId as string
+      console.log('📝 Updating lab:', labId)
       await labStore.updateLab(labId, labData)
+      console.log('✅ Lab updated successfully')
       router.push(`/labs/${labId}`)
     }
-  } catch (error) {
-    console.error('Save failed:', error)
-    // Here you could show a toast notification or error message
+  } catch (error: any) {
+    console.error('❌ Save failed:', error)
+    // Error will be handled by the form component
   }
 }
 
-onMounted(() => {
-  console.log('Route params on mount:', route.params) // Debug log
-  console.log('Is create mode:', isCreateMode.value) // Debug log
-  fetchLab()
+onMounted(async () => {
+  console.log('🏢 Lab Edit page mounted')
+  console.log('📋 Route params:', route.params)
+  console.log('📋 Is create mode:', isCreateMode.value)
+  
+  // Check permissions
+  const requiredPermission = isCreateMode.value ? 'LAB_CREATE' : 'LAB_EDIT'
+  console.log(`🔐 Checking ${requiredPermission} permission...`)
+  console.log('👤 Current user permissions:', authStore.user?.permissions)
+  
+  if (!hasRequiredPermission.value) {
+    console.warn(`❌ Access denied: User does not have ${requiredPermission} permission`)
+    // Don't redirect immediately, let the UI show the permission denied message
+    return
+  }
+  
+  console.log(`✅ Permission check passed: ${requiredPermission}`)
+  console.log('📋 User permissions:', {
+    create: canCreate.value,
+    edit: canEdit.value
+  })
+  
+  await fetchLab()
 })
 
 // Watch for route changes
 watch(() => route.params.labId, (newLabId, oldLabId) => {
-  console.log('Route param changed:', oldLabId, '->', newLabId)
+  console.log('🔄 Route param changed:', oldLabId, '->', newLabId)
   if (newLabId !== oldLabId) {
     // Reset state
     lab.value = null
     error.value = null
+    
+    // Check permission again
+    if (!hasRequiredPermission.value) {
+      console.warn('❌ Access denied after route change')
+      return
+    }
+    
     fetchLab()
   }
 }, { immediate: false })

@@ -26,15 +26,6 @@
 
       <!-- Right side -->
       <div class="flex items-center space-x-3">
-        <!-- Contact admin (desktop only) -->
-        <button 
-          class="hidden lg:flex items-center space-x-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-          @click="handleContactAdmin"
-        >
-          <Mail class="w-4 h-4" />
-          <span>{{ $t('settings.contact') }}</span>
-        </button>
-
         <!-- Language selector -->
         <div class="relative" data-dropdown="language">
           <button
@@ -83,18 +74,7 @@
 
         <!-- Notifications -->
         <div class="relative" data-dropdown="notifications">
-          <button
-            class="p-2 rounded-lg hover:bg-gray-100 relative transition-colors"
-            @click.stop="toggleNotifications"
-          >
-            <Bell class="w-5 h-5" />
-            <span 
-              v-if="unreadCount > 0"
-              class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-medium"
-            >
-              {{ unreadCount > 9 ? '9+' : unreadCount }}
-            </span>
-          </button>
+          
 
           <!-- Notifications dropdown -->
           <Transition
@@ -206,7 +186,6 @@ import {
   User, 
   LogOut, 
   ChevronDown,
-  Mail,
   Check as CheckIcon
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
@@ -274,16 +253,6 @@ const handleSearch = () => {
   }
 }
 
-const handleContactAdmin = () => {
-  uiStore.addNotification({
-    type: 'info',
-    title: currentLocale.value === 'en' ? 'Contact Admin' : '联系管理员',
-    message: currentLocale.value === 'en' ? 
-      'Please email admin@example.com for assistance' : 
-      '请发送邮件至 admin@example.com 获取帮助'
-  })
-}
-
 const toggleNotifications = () => {
   showNotifications.value = !showNotifications.value
   showUserMenu.value = false
@@ -321,8 +290,7 @@ const handleLanguageChange = (newLocale: LocaleType) => {
 const handleProfile = () => {
   console.log('👤 Opening profile')
   showUserMenu.value = false
-  // TODO: 导航到个人资料页面或打开个人资料模态框
-  //router.push('/profile')
+  router.push('/settings')
 }
 
 const handleLogout = async () => {

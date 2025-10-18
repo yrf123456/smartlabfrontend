@@ -7,7 +7,7 @@
         <p class="text-gray-600 mt-1">Manage and view all laboratories</p>
       </div>
       
-      <!-- Create Button (Admin Only) -->
+      <!-- Create Button - Permission Based -->
       <div v-if="canCreate" class="flex items-center space-x-3">
         <button
           @click="handleCreateNew"
@@ -309,6 +309,14 @@
                       <Eye class="w-4 h-4" />
                     </button>
                     <button
+                      v-if="canEdit"
+                      @click="handleEditLab(lab)"
+                      class="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-gray-100"
+                      title="Edit Lab"
+                    >
+                      <Edit class="w-4 h-4" />
+                    </button>
+                    <button
                       v-if="lab.status === 'available'"
                       @click="handleBookLab(lab)"
                       class="p-2 text-gray-400 hover:text-green-600 rounded-lg hover:bg-gray-100"
@@ -333,12 +341,11 @@ import { useRouter } from 'vue-router'
 import { useLabStore } from '@/stores/lab'
 import { useAuthStore } from '@/stores/auth'
 import type { Lab } from '@/types'
-import { UserRole } from '@/types'
 
 // Icons
 import {
   Plus, Search, Tag, ChevronDown, X, Grid, List, 
-  AlertCircle, RefreshCw, Building2, Eye, Calendar
+  AlertCircle, RefreshCw, Building2, Eye, Calendar, Edit
 } from 'lucide-vue-next'
 
 // Components
@@ -354,7 +361,7 @@ const searchQuery = ref('')
 const statusFilter = ref<Lab['status'] | ''>('')
 const selectedTags = ref<string[]>([])
 
-// Computed properties - 正确的响应式访问方式
+// Computed properties
 const isLoading = computed(() => labStore.loading)
 const currentError = computed(() => labStore.error)
 const currentFilteredLabs = computed(() => labStore.filteredLabs)
@@ -362,15 +369,10 @@ const availableTags = computed(() => labStore.availableTags)
 const currentViewMode = computed(() => labStore.viewMode)
 const totalLabs = computed(() => labStore.labs.length)
 
-const canCreate = computed(() => 
-  authStore.hasRole(UserRole.SYSTEM_ADMIN) || 
-  authStore.hasRole(UserRole.DEPARTMENT_ADMIN)
-)
-
-const canEdit = computed(() => 
-  authStore.hasRole(UserRole.SYSTEM_ADMIN) || 
-  authStore.hasRole(UserRole.DEPARTMENT_ADMIN)
-)
+// Permission-based access control
+const canView = computed(() => authStore.hasPermission('LAB_VIEW'))
+const canCreate = computed(() => authStore.hasPermission('LAB_CREATE'))
+const canEdit = computed(() => authStore.hasPermission('LAB_EDIT'))
 
 const hasActiveFilters = computed(() => 
   searchQuery.value !== '' || 
@@ -403,16 +405,19 @@ const handleViewLab = (lab: Lab) => {
 }
 
 const handleEditLab = (lab: Lab) => {
-  router.push(`/labs/${lab.id}/edit`)
+  if (canEdit.value) {
+    router.push(`/labs/${lab.id}/edit`)
+  }
 }
 
 const handleBookLab = (lab: Lab) => {
-  // Navigate to booking page with lab pre-selected
   router.push(`/bookings?labId=${lab.id}`)
 }
 
 const handleCreateNew = () => {
-  router.push('/labs/new/edit')
+  if (canCreate.value) {
+    router.push('/labs/new/edit')
+  }
 }
 
 const getStatusClass = (status: Lab['status']) => {
@@ -470,9 +475,24 @@ watch(showTagFilter, (show) => {
   }
 })
 
-// Lifecycle
+// Lifecycle - Check permissions before loading
 onMounted(async () => {
-  console.log('🚀 Labs page mounted, fetching data...')
+  console.log('🚀 Labs page mounted')
+  
+  // Permission check: Must have LAB_VIEW permission
+  if (!canView.value) {
+    console.warn('❌ Access denied: User does not have LAB_VIEW permission')
+    router.push('/dashboard')
+    return
+  }
+  
+  console.log('✅ Permission check passed: LAB_VIEW')
+  console.log('📋 User permissions:', {
+    view: canView.value,
+    create: canCreate.value,
+    edit: canEdit.value
+  })
+  
   try {
     await labStore.fetchLabs()
     console.log('✅ Labs data loaded:', labStore.labs.length, 'items')

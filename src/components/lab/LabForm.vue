@@ -63,31 +63,56 @@
       <label class="block text-sm font-medium text-gray-700 mb-2">
         Cover Image
       </label>
-      <div class="flex items-start space-x-4">
-        <div class="flex-1">
-          <input
-            ref="fileInput"
-            type="file"
-            accept="image/*"
-            class="hidden"
-            @change="handleFileChange"
-          />
-          <div
-            class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
-            @click="triggerFileInput"
-          >
-            <Upload class="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p class="text-sm text-gray-600">Click to upload image</p>
-            <p class="text-xs text-gray-500 mt-1">Supports JPG, PNG formats</p>
+      <div class="flex items-start space-x-6">
+        <!-- Image Preview -->
+        <div class="flex-shrink-0">
+          <div class="relative group">
+            <img 
+              :src="form.coverUrl || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=240&fit=crop'" 
+              alt="Lab Cover"
+              class="w-32 h-32 rounded-xl object-cover border-4 border-gray-100 cursor-pointer"
+              @error="handleImageError"
+              @click="triggerFileInput"
+            />
+            <div 
+              class="absolute inset-0 rounded-xl bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              @click="triggerFileInput"
+            >
+              <Upload class="w-8 h-8 text-white" />
+            </div>
+            <input 
+              ref="fileInput"
+              type="file" 
+              accept="image/*"
+              class="hidden"
+              @change="handleFileChange"
+              :disabled="isUploading"
+            />
           </div>
+          <p class="text-xs text-gray-500 mt-2 text-center">
+            {{ isUploading ? 'Uploading...' : 'Click to upload' }}
+          </p>
         </div>
         
-        <div v-if="form.coverUrl" class="w-24 h-24 rounded-xl overflow-hidden bg-gray-100">
-          <img
-            :src="form.coverUrl"
-            alt="Preview"
-            class="w-full h-full object-cover"
-          />
+        <!-- Upload Instructions -->
+        <div class="flex-1">
+          <div class="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center bg-gray-50">
+            <Upload class="w-8 h-8 text-gray-400 mx-auto mb-2" />
+            <p class="text-sm text-gray-600 mb-1">
+              {{ isUploading ? 'Uploading image...' : 'Click the image or drag and drop' }}
+            </p>
+            <p class="text-xs text-gray-500">
+              Supports JPG, PNG formats (Max 5MB)
+            </p>
+            <button
+              type="button"
+              class="mt-3 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              :disabled="isUploading"
+              @click="triggerFileInput"
+            >
+              {{ isUploading ? 'Uploading...' : 'Choose Image' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -170,12 +195,12 @@
       </button>
       <button
         type="submit"
-        :disabled="loading"
-        class="px-4 py-2 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors disabled:opacity-50"
+        :disabled="loading || isUploading"
+        class="px-4 py-2 bg-primary-500 text-white rounded-xl font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <div v-if="loading" class="flex items-center">
+        <div v-if="loading || isUploading" class="flex items-center">
           <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-          Saving...
+          {{ isUploading ? 'Uploading...' : 'Saving...' }}
         </div>
         <span v-else>Save</span>
       </button>
@@ -203,6 +228,7 @@ const emit = defineEmits<Emits>()
 
 const fileInput = ref<HTMLInputElement>()
 const loading = ref(false)
+const isUploading = ref(false)
 const newTag = ref('')
 
 const form = reactive({
@@ -232,33 +258,71 @@ const removeTag = (tag: string) => {
 }
 
 const triggerFileInput = () => {
-  fileInput.value?.click()
+  if (!isUploading.value && fileInput.value) {
+    fileInput.value.click()
+  }
 }
 
 const handleFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   
-  if (file) {
-    try {
-      loading.value = true
-      const response = await api.upload.upload(file)
+  if (!file) return
+  
+  // Validate file type
+  if (!file.type.startsWith('image/')) {
+    alert('Please select an image file')
+    return
+  }
+  
+  // Validate file size (max 5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File size must be less than 5MB')
+    return
+  }
+  
+  isUploading.value = true
+  
+  try {
+    console.log('📤 Uploading lab cover image...')
+    const response = await api.upload.upload(file)
+    
+    if (response.data && response.data.url) {
       form.coverUrl = response.data.url
-    } catch (error) {
-      console.error('Upload failed:', error)
-      // Show error notification
-    } finally {
-      loading.value = false
+      console.log('✅ Lab cover uploaded:', form.coverUrl)
+      alert('Image uploaded successfully!')
+    }
+  } catch (error: any) {
+    console.error('❌ Upload failed:', error)
+    alert('Failed to upload image: ' + (error.response?.data?.msg || error.message))
+  } finally {
+    isUploading.value = false
+    // Clear file input
+    if (target) {
+      target.value = ''
     }
   }
+}
+
+const handleImageError = (event: Event) => {
+  const img = event.target as HTMLImageElement
+  img.src = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&h=240&fit=crop'
 }
 
 const handleSubmit = () => {
   // Validate form
   if (!form.name || !form.location || !form.capacity || !form.openHours) {
+    alert('Please fill in all required fields')
     console.warn('Required fields missing')
     return
   }
+  
+  if (isUploading.value) {
+    alert('Please wait for image upload to complete')
+    return
+  }
+  
+  loading.value = true
   
   const labData = {
     name: form.name,
@@ -272,6 +336,12 @@ const handleSubmit = () => {
     managers: form.managers
   }
   
+  console.log('📝 Submitting lab data:', labData)
   emit('submit', labData)
+  
+  // Reset loading after a delay (the parent component will handle navigation)
+  setTimeout(() => {
+    loading.value = false
+  }, 1000)
 }
 </script>

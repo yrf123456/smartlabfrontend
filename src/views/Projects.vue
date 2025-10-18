@@ -3,20 +3,19 @@
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">{{ $t('project.title') }} Management</h1>
+        <h1 class="text-2xl font-bold text-gray-900">Project Management</h1>
         <p class="text-gray-600 mt-1">Manage experimental projects from application to archive</p>
       </div>
       
       <div class="flex items-center space-x-3">
         <button 
-          v-if="canCreateProject"
+          v-if="canCreate"
           class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
           @click="$router.push('/projects/new')"
         >
           <Plus class="w-4 h-4 inline mr-2" />
           New Project
         </button>
-        
       </div>
     </div>
 
@@ -148,7 +147,7 @@
       <h3 class="text-lg font-medium text-gray-900 mb-2">No projects found</h3>
       <p class="text-gray-500 mb-4">Get started by creating your first project</p>
       <button 
-        v-if="canCreateProject"
+        v-if="canCreate"
         class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
         @click="$router.push('/projects/new')"
       >
@@ -337,7 +336,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { 
   Plus, 
-  Download, 
   FileText, 
   Clock, 
   AlertCircle, 
@@ -353,7 +351,6 @@ import { useLabStore } from '@/stores/lab'
 import { useAuthStore } from '@/stores/auth'
 import { useUiStore } from '@/stores/ui'
 import type { Project } from '@/types'
-import { UserRole } from '@/types'
 
 const router = useRouter()
 const projectStore = useProjectStore()
@@ -361,7 +358,6 @@ const labStore = useLabStore()
 const authStore = useAuthStore()
 const uiStore = useUiStore()
 
-// Reactive data
 const showApproval = ref(false)
 const selectedProject = ref<Project | null>(null)
 const approving = ref(false)
@@ -378,41 +374,36 @@ const projectPhases = [
   { key: 'archive', label: 'Archive', icon: Archive }
 ]
 
-// Computed properties
+const canView = computed(() => authStore.hasPermission('PROJECT_VIEW'))
+const canCreate = computed(() => authStore.hasPermission('PROJECT_CREATE'))
+const canEdit = computed(() => authStore.hasPermission('PROJECT_EDIT'))
+const canApprove = computed(() => authStore.hasPermission('PROJECT_APPROVE'))
+const canDelete = computed(() => authStore.hasPermission('PROJECT_DELETE'))
+
 const laboratories = computed(() => labStore.labs)
 
-const canCreateProject = computed(() => {
-  return authStore.hasRole(UserRole.SYSTEM_ADMIN) ||
-         authStore.hasRole(UserRole.DEPARTMENT_ADMIN) ||
-         authStore.hasRole(UserRole.TEACHER) ||
-         authStore.hasRole(UserRole.STUDENT)
-})
-
-const canExportData = computed(() => {
-  return authStore.hasRole(UserRole.SYSTEM_ADMIN) ||
-         authStore.hasRole(UserRole.DEPARTMENT_ADMIN) ||
-         authStore.hasRole(UserRole.TEACHER)
-})
-
-// Methods
 const canEditProject = (project: Project) => {
-  if (authStore.hasRole(UserRole.SYSTEM_ADMIN) || authStore.hasRole(UserRole.DEPARTMENT_ADMIN)) {
+  if (!canEdit.value) return false
+  
+  if (authStore.hasRole('ADMIN') || authStore.hasRole('DEPARTMENT_ADMIN')) {
     return true
   }
-  if (authStore.hasRole(UserRole.TEACHER)) {
+  
+  if (authStore.hasRole('TEACHER')) {
     return project.principalInvestigator.id === authStore.user?.id
   }
+  
   return false
 }
 
 const canApproveProject = (project: Project) => {
-  return (authStore.hasRole(UserRole.SYSTEM_ADMIN) || authStore.hasRole(UserRole.DEPARTMENT_ADMIN)) && 
-         project.status === 'pending'
+  return canApprove.value && project.status === 'pending'
 }
 
 const canDeleteProject = (project: Project) => {
-  return (authStore.hasRole(UserRole.SYSTEM_ADMIN) || authStore.hasRole(UserRole.DEPARTMENT_ADMIN)) && 
-         ['pending', 'rejected'].includes(project.status)
+  if (!canDelete.value) return false
+  
+  return ['pending', 'rejected'].includes(project.status)
 }
 
 const getStatusClass = (status: string) => {
@@ -491,21 +482,25 @@ const editProject = (projectId: string) => {
 }
 
 const deleteProject = async (projectId: string) => {
-  if (confirm('Are you sure you want to delete this project?')) {
-    try {
-      await projectStore.deleteProject(projectId)
-      uiStore.addNotification({
-        type: 'success',
-        title: 'Success',
-        message: 'Project deleted successfully'
-      })
-    } catch (error) {
-      uiStore.addNotification({
-        type: 'error',
-        title: 'Error',
-        message: 'Failed to delete project'
-      })
-    }
+  if (!confirm('Are you sure you want to delete this project?')) {
+    return
+  }
+  
+  try {
+    await projectStore.deleteProject(projectId)
+    uiStore.addNotification({
+      type: 'success',
+      title: 'Success',
+      message: 'Project deleted successfully'
+    })
+    console.log('✅ Project deleted')
+  } catch (error) {
+    uiStore.addNotification({
+      type: 'error',
+      title: 'Error',
+      message: 'Failed to delete project'
+    })
+    console.error('❌ Failed to delete project:', error)
   }
 }
 
@@ -531,12 +526,14 @@ const approveProject = async () => {
     showApproval.value = false
     approvalForm.value.comments = ''
     selectedProject.value = null
+    console.log('✅ Project approved')
   } catch (error) {
     uiStore.addNotification({
       type: 'error',
       title: 'Error',
       message: 'Failed to approve project'
     })
+    console.error('❌ Failed to approve project:', error)
   } finally {
     approving.value = false
   }
@@ -558,27 +555,23 @@ const rejectProject = async () => {
     showApproval.value = false
     approvalForm.value.comments = ''
     selectedProject.value = null
+    console.log('✅ Project rejected')
   } catch (error) {
     uiStore.addNotification({
       type: 'error',
       title: 'Error',
       message: 'Failed to reject project'
     })
+    console.error('❌ Failed to reject project:', error)
   } finally {
     rejecting.value = false
   }
-}
-
-const exportProjects = () => {
-  console.log('Export projects to CSV/Excel')
-  // Implementation for exporting project data
 }
 
 const clearFilters = () => {
   projectStore.clearFilters()
 }
 
-// Debounced search
 let searchTimeout: NodeJS.Timeout
 const debouncedSearch = () => {
   clearTimeout(searchTimeout)
@@ -588,13 +581,33 @@ const debouncedSearch = () => {
 }
 
 onMounted(async () => {
+  console.log('🚀 Projects page mounted')
+  console.log('👤 Current user:', authStore.user?.name)
+  console.log('🔑 User permissions:', authStore.user?.permissions)
+  console.log('📋 Permission check:', {
+    canView: canView.value,
+    canCreate: canCreate.value,
+    canEdit: canEdit.value,
+    canApprove: canApprove.value,
+    canDelete: canDelete.value
+  })
+
+  if (!canView.value) {
+    console.warn('❌ Access denied: User does not have PROJECT_VIEW permission')
+    router.push('/dashboard')
+    return
+  }
+
+  console.log('✅ Permission check passed: PROJECT_VIEW')
+  
   try {
     await Promise.all([
       projectStore.fetchProjects(),
       labStore.fetchLabs()
     ])
+    console.log('✅ Projects data loaded:', projectStore.projects?.length || 0, 'items')
   } catch (error) {
-    console.error('Failed to load initial data:', error)
+    console.error('❌ Failed to load initial data:', error)
   }
 })
 </script>

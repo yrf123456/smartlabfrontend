@@ -4,48 +4,55 @@ import router from './router'
 import App from './App.vue'
 import './style.css'
 
-// 导入 i18n 配置
+// Import i18n config
 import i18n from './locales'
+
+// Import permission directives
+import { permission, role } from './directives/permission'
 
 const app = createApp(App)
 const pinia = createPinia()
 
-// 插件注册
+// Plugin registration
 app.use(pinia)
 app.use(router)
 app.use(i18n)
 
-// 初始化应用设置
+// Register permission directives globally
+app.directive('permission', permission)
+app.directive('role', role)
+
+// Initialize app settings
 const initializeApp = async () => {
   const { useUiStore } = await import('@/stores/ui')
   const uiStore = useUiStore()
   
-  // 初始化主题
+  // Initialize theme
   uiStore.initTheme()
   
-  // 初始化语言设置
+  // Initialize language settings
   uiStore.initLocale()
   
-  // 确保 i18n 实例使用正确的语言
+  // Ensure i18n instance uses correct language
   i18n.global.locale.value = uiStore.locale
   
   console.log('🌍 App initialized with locale:', uiStore.locale)
 }
 
-// 开发环境调试
+// Development environment debugging
 if (import.meta.env.DEV) {
-  // 全局错误处理
+  // Global error handling
   app.config.errorHandler = (err, instance, info) => {
     console.error('🚨 Vue Error:', err)
     console.error('📍 Component:', instance)
     console.error('ℹ️ Info:', info)
   }
 
-  // 路由调试
+  // Router debugging
   router.afterEach((to, from) => {
     console.log(`🧭 Route: ${from.path} → ${to.path}`)
     
-    // 特别监控实验室相关路由
+    // Special monitoring for lab-related routes
     if (to.path.startsWith('/labs') || from.path.startsWith('/labs')) {
       console.log('🏢 Lab route detected:', {
         to: to.path,
@@ -56,12 +63,12 @@ if (import.meta.env.DEV) {
     }
   })
 
-  // 全局状态监控
+  // Global state monitoring
   window.addEventListener('unhandledrejection', (event) => {
     console.error('🚨 Unhandled Promise Rejection:', event.reason)
   })
 
-  // 性能监控
+  // Performance monitoring
   try {
     const observer = new PerformanceObserver((list) => {
       for (const entry of list.getEntries()) {
@@ -77,16 +84,17 @@ if (import.meta.env.DEV) {
 
   console.log('🚀 Smart Lab Frontend Started (Development Mode)')
   console.log('🌐 Default Language: English')
+  console.log('🔐 Permission System: Enabled')
   console.log('🐛 Debug functions available:')
-  console.log('  - debugSidebar() - Sidebar状态')
-  console.log('  - debugLabs() - 实验室页面状态')
-  console.log('  - window.$debug() - 全局状态')
+  console.log('  - debugSidebar() - Sidebar state')
+  console.log('  - debugLabs() - Lab page state')
+  console.log('  - window.$debug() - Global state')
 }
 
-// 挂载应用
+// Mount app
 app.mount('#app')
 
-// 应用挂载后初始化设置
+// Initialize settings after app is mounted
 initializeApp().catch(error => {
   console.error('Failed to initialize app:', error)
 })

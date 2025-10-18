@@ -31,11 +31,15 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/Dashboard.vue'),
         meta: { title: 'Dashboard' }
       },
+      // ===== Lab Management Routes =====
       {
         path: 'labs',
         name: 'Labs',
         component: () => import('@/views/Labs.vue'),
-        meta: { title: 'Laboratory Management' }
+        meta: { 
+          title: 'Laboratory Management',
+          permissions: ['LAB_VIEW']
+        }
       },
       {
         path: 'labs/new/edit',
@@ -43,7 +47,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/LabEdit.vue'),
         meta: { 
           title: 'Create Laboratory',
-          roles: ['SYS_ADMIN', 'SYSTEM_ADMIN', 'DEPT_ADMIN', 'DEPARTMENT_ADMIN'] 
+          permissions: ['LAB_CREATE']
         }
       },
       {
@@ -51,7 +55,10 @@ const routes: RouteRecordRaw[] = [
         name: 'LabDetail',
         component: () => import('@/views/LabDetail.vue'),
         props: true,
-        meta: { title: 'Laboratory Details' }
+        meta: { 
+          title: 'Laboratory Details',
+          permissions: ['LAB_VIEW']
+        }
       },
       {
         path: 'labs/:labId/edit',
@@ -60,32 +67,48 @@ const routes: RouteRecordRaw[] = [
         props: true,
         meta: { 
           title: 'Edit Laboratory',
-          roles: ['SYS_ADMIN', 'SYSTEM_ADMIN', 'DEPT_ADMIN', 'DEPARTMENT_ADMIN'] 
+          permissions: ['LAB_EDIT']
         }
       },
+      // ===== Booking Management Routes =====
       {
         path: 'bookings',
         name: 'Bookings',
         component: () => import('@/views/Bookings.vue'),
-        meta: { title: 'Booking Management' }
+        meta: { 
+          title: 'Booking Management',
+          permissions: ['BOOKING_VIEW', 'BOOKING_CREATE', 'BOOKING_APPROVE']
+        }
       },
+      // ===== Equipment Management Routes =====
       {
         path: 'equipment',
         name: 'Equipment',
         component: () => import('@/views/Equipment.vue'),
-        meta: { title: 'Equipment Management' }
+        meta: { 
+          title: 'Equipment Management',
+          permissions: ['EQUIPMENT_VIEW']
+        }
       },
+      // ===== Environment Monitoring Routes =====
       {
         path: 'environment',
         name: 'Environment',
         component: () => import('@/views/Environment.vue'),
-        meta: { title: 'Environment Monitoring' }
+        meta: { 
+          title: 'Environment Monitoring',
+          permissions: ['ENVIRONMENT_VIEW']
+        }
       },
+      // ===== Project Management Routes =====
       {
         path: 'projects',
         name: 'Projects',
         component: () => import('@/views/Projects.vue'),
-        meta: { title: 'Project Management' }
+        meta: { 
+          title: 'Project Management',
+          permissions: ['PROJECT_VIEW']
+        }
       },
       {
         path: 'projects/new',
@@ -93,7 +116,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/ProjectEdit.vue'),
         meta: { 
           title: 'Create Project',
-          roles: ['SYS_ADMIN', 'SYSTEM_ADMIN', 'DEPT_ADMIN', 'DEPARTMENT_ADMIN', 'TEACHER', 'STUDENT'] 
+          permissions: ['PROJECT_CREATE']
         }
       },
       {
@@ -101,7 +124,10 @@ const routes: RouteRecordRaw[] = [
         name: 'ProjectDetail',
         component: () => import('@/views/ProjectDetail.vue'),
         props: true,
-        meta: { title: 'Project Details' }
+        meta: { 
+          title: 'Project Details',
+          permissions: ['PROJECT_VIEW']
+        }
       },
       {
         path: 'projects/:projectId/edit',
@@ -110,31 +136,37 @@ const routes: RouteRecordRaw[] = [
         props: true,
         meta: { 
           title: 'Edit Project',
-          roles: ['SYS_ADMIN', 'SYSTEM_ADMIN', 'DEPT_ADMIN', 'DEPARTMENT_ADMIN', 'TEACHER'] 
+          permissions: ['PROJECT_EDIT']
         }
       },
+      // ===== User Management Routes (ADMIN only) =====
       {
         path: 'users',
         name: 'Users',
         component: () => import('@/views/Users.vue'),
         meta: { 
           title: 'User Management',
-          roles: ['SYS_ADMIN', 'SYSTEM_ADMIN', 'DEPT_ADMIN', 'DEPARTMENT_ADMIN'] 
+          permissions: ['USER_MANAGEMENT']
         }
       },
+      // ===== Reports & Analytics Routes =====
       {
         path: 'reports',
         name: 'Reports',
         component: () => import('@/views/Reports.vue'),
-        meta: { title: 'Reports & Analytics' }
+        meta: { 
+          title: 'Reports & Analytics',
+          permissions: ['REPORTS_VIEW']
+        }
       },
+      // ===== Personal Settings Route (No permission required) =====
       {
         path: 'settings',
         name: 'Settings',
         component: () => import('@/views/Settings.vue'),
         meta: { 
-          title: 'System Settings',
-          roles: ['SYS_ADMIN', 'SYSTEM_ADMIN'] 
+          title: 'Settings'
+          // No permissions required - accessible to all authenticated users
         }
       }
     ]
@@ -191,7 +223,7 @@ router.beforeEach(async (to, from, next) => {
       const initialized = await waitForAuthInitialization(5000)
       
       if (!initialized) {
-        console.error('⌛ Router: Auth initialization timeout')
+        console.error('⏱️ Router: Auth initialization timeout')
         if (to.path === '/login' || to.path === '/register') {
           next()
           return
@@ -208,7 +240,7 @@ router.beforeEach(async (to, from, next) => {
     const requiresAuth = to.meta.requiresAuth !== false
     const isAuthenticated = authStore.isAuthenticated
     
-    console.log(`🔐 Router: Auth check - requiresAuth: ${requiresAuth}, isAuthenticated: ${isAuthenticated}`)
+    console.log(`🔍 Router: Auth check - requiresAuth: ${requiresAuth}, isAuthenticated: ${isAuthenticated}`)
     
     if (requiresAuth && !isAuthenticated) {
       console.log('⛔ Router: Access denied, redirecting to login')
@@ -219,17 +251,50 @@ router.beforeEach(async (to, from, next) => {
       return
     }
     
-    if (to.meta.roles && Array.isArray(to.meta.roles) && isAuthenticated) {
-      console.log(`🔑 Router: Checking roles - Required: ${to.meta.roles}, User roles: ${authStore.user?.roles}`)
+    if (isAuthenticated && requiresAuth) {
+      try {
+        console.log('🔄 Router: Refreshing user permissions...')
+        console.log('👤 Current permissions before refresh:', authStore.user?.permissions)
+        
+        await authStore.fetchProfile()
+        
+        console.log('✅ Router: Permissions refreshed successfully')
+        console.log('👤 Current permissions after refresh:', authStore.user?.permissions)
+      } catch (error: any) {
+        console.error('❌ Router: Failed to refresh permissions:', error)
+        
+        if (error.response?.status === 401) {
+          console.log('🔒 Router: Authentication expired, redirecting to login')
+          await authStore.logout()
+          next('/login')
+          return
+        }
+        
+        console.warn('⚠️ Router: Using cached permissions due to refresh error')
+      }
+    }
+    
+    if (to.meta.permissions && Array.isArray(to.meta.permissions) && isAuthenticated) {
+      console.log(`🔒 Router: Checking permissions - Required: ${to.meta.permissions}`)
+      console.log(`👤 Router: User permissions: ${authStore.user?.permissions}`)
       
-      const hasRequiredRole = to.meta.roles.some(role => 
-        authStore.hasRole(role as string)
+      const hasRequiredPermission = to.meta.permissions.some(permission => 
+        authStore.hasPermission(permission as string)
       )
       
-      console.log(`🔑 Router: Role check result: ${hasRequiredRole}`)
+      console.log(`🔒 Router: Permission check result: ${hasRequiredPermission}`)
       
-      if (!hasRequiredRole) {
+      if (!hasRequiredPermission) {
         console.log('🚫 Router: Insufficient permissions, redirecting to dashboard')
+        
+        // Show alert immediately
+        const requiredPerms = (to.meta.permissions as string[]).join(', ')
+        
+        // Use setTimeout to ensure alert shows after navigation
+        setTimeout(() => {
+          alert(`Access Denied\n\nYou don't have permission to access this page.`)
+        }, 100)
+        
         next('/dashboard')
         return
       }
@@ -257,7 +322,7 @@ router.beforeEach(async (to, from, next) => {
 
 router.afterEach((to, from, failure) => {
   if (failure) {
-    console.error('⌛ Router: Navigation failed:', failure)
+    console.error('⏱️ Router: Navigation failed:', failure)
     return
   }
   

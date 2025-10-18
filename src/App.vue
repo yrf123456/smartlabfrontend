@@ -1,6 +1,6 @@
 <template>
   <div id="app" class="min-h-screen">
-    <!-- 全局初始化加载状态 -->
+    <!-- Global initialization loading state -->
     <div
       v-if="!appInitialized"
       class="min-h-screen bg-background flex items-center justify-center"
@@ -12,7 +12,7 @@
         <h3 class="text-lg font-medium text-gray-900 mb-2">Smart Lab</h3>
         <p class="text-gray-600">{{ initializationStatus }}</p>
         
-        <!-- 初始化进度 -->
+        <!-- Initialization progress -->
         <div class="w-64 bg-gray-200 rounded-full h-1 mt-4">
           <div 
             class="bg-primary-500 h-1 rounded-full transition-all duration-300"
@@ -22,10 +22,10 @@
       </div>
     </div>
     
-    <!-- 主应用内容 -->
+    <!-- Main application content -->
     <router-view v-else-if="!initializationError" />
     
-    <!-- 初始化错误状态 -->
+    <!-- Initialization error state -->
     <div
       v-else
       class="min-h-screen bg-background flex items-center justify-center"
@@ -34,13 +34,13 @@
         <div class="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
           <AlertCircle class="w-8 h-8 text-red-500" />
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-2">初始化失败</h3>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Initialization Failed</h3>
         <p class="text-gray-600 mb-6">{{ initializationError }}</p>
         <button
           class="bg-primary-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-600 transition-colors"
           @click="retryInitialization"
         >
-          重试
+          Retry
         </button>
       </div>
     </div>
@@ -61,16 +61,8 @@ const uiStore = useUiStore()
 
 const appInitialized = ref(false)
 const initializationError = ref('')
-const initializationStatus = ref('正在初始化...')
+const initializationStatus = ref('Initializing...')
 const initializationProgress = ref(0)
-
-// 初始化步骤
-const initializationSteps = [
-  { name: '加载配置', progress: 20 },
-  { name: '初始化主题', progress: 40 },
-  { name: '验证身份', progress: 70 },
-  { name: '准备界面', progress: 100 }
-]
 
 const updateInitializationStatus = (step: string, progress: number) => {
   initializationStatus.value = step
@@ -81,20 +73,20 @@ const initializeApp = async () => {
   try {
     console.log('🚀 App: Starting initialization...')
     
-    // 步骤 1: 加载配置
-    updateInitializationStatus('加载配置...', 20)
+    // Step 1: Load configuration
+    updateInitializationStatus('Loading configuration...', 20)
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    // 步骤 2: 初始化主题
-    updateInitializationStatus('初始化主题...', 40)
+    // Step 2: Initialize theme
+    updateInitializationStatus('Initializing theme...', 40)
     uiStore.initTheme()
     await new Promise(resolve => setTimeout(resolve, 100))
     
-    // 步骤 3: 初始化认证状态
-    updateInitializationStatus('验证身份...', 70)
+    // Step 3: Initialize auth state
+    updateInitializationStatus('Verifying authentication...', 70)
     await authStore.initAuth()
     
-    // 确保认证状态已经完全初始化
+    // Ensure auth state is fully initialized
     let retryCount = 0
     while (!authStore.initialized && retryCount < 10) {
       await new Promise(resolve => setTimeout(resolve, 100))
@@ -102,23 +94,25 @@ const initializeApp = async () => {
     }
     
     if (!authStore.initialized) {
-      throw new Error('认证初始化超时')
+      throw new Error('Authentication initialization timeout')
     }
     
-    // 步骤 4: 准备界面
-    updateInitializationStatus('准备界面...', 100)
+    // Step 4: Prepare interface
+    updateInitializationStatus('Preparing interface...', 100)
     await new Promise(resolve => setTimeout(resolve, 200))
     
     console.log('✅ App: Initialization completed')
     console.log('👤 Current user:', authStore.user?.name || 'Not authenticated')
-    console.log('🔐 Authentication status:', authStore.isAuthenticated)
+    console.log('🔓 Authentication status:', authStore.isAuthenticated)
+    console.log('🔑 User roles:', authStore.user?.roles)
+    console.log('🎫 User permissions:', authStore.user?.permissions)
     
     appInitialized.value = true
     initializationError.value = ''
     
   } catch (error: any) {
     console.error('❌ App: Initialization failed:', error)
-    initializationError.value = error.message || '初始化过程中发生错误'
+    initializationError.value = error.message || 'An error occurred during initialization'
     appInitialized.value = false
   }
 }
@@ -131,21 +125,20 @@ const retryInitialization = () => {
   initializeApp()
 }
 
-// 捕获组件错误
+// Capture component errors
 onErrorCaptured((error, instance, info) => {
   console.error('🚨 App: Component error caught:', error, info)
   
-  // 显示用户友好的错误信息
   uiStore.addNotification({
     type: 'error',
-    title: '页面错误',
-    message: '页面渲染出现问题，请刷新重试'
+    title: 'Page Error',
+    message: 'Page rendering issue, please refresh and try again'
   })
   
   return false
 })
 
-// 监听未处理的错误
+// Listen for unhandled errors
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (event) => {
     console.error('🚨 Global error:', event.error)
@@ -163,22 +156,25 @@ onMounted(async () => {
   await initializeApp()
 })
 
-// 开发环境调试
+// Development environment debugging
 if (import.meta.env.DEV) {
   (window as any).$debug = () => {
-    console.log('🐛 Global Debug Info:')
+    console.log('🛠 Global Debug Info:')
     console.log('  - App initialized:', appInitialized.value)
     console.log('  - Auth initialized:', authStore.initialized)
     console.log('  - Is authenticated:', authStore.isAuthenticated)
     console.log('  - Current user:', authStore.user)
+    console.log('  - User roles:', authStore.user?.roles)
+    console.log('  - User permissions:', authStore.user?.permissions)
     console.log('  - Current route:', route.path)
     console.log('  - Initialization error:', initializationError.value)
   }
+  
+  console.log('🛠 Debug: Type window.$debug() to see global state')
 }
 </script>
 
 <style scoped>
-/* 加载动画 */
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -192,7 +188,6 @@ if (import.meta.env.DEV) {
   animation: spin 1s linear infinite;
 }
 
-/* 进度条动画 */
 .transition-all {
   transition-property: all;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);

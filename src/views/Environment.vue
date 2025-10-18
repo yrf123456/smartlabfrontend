@@ -20,6 +20,7 @@
         </select>
         
         <button 
+          v-if="canConfigure"
           class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
           @click="exportData"
         >
@@ -49,8 +50,19 @@
       </div>
     </div>
 
+    <!-- Loading State -->
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div v-for="i in 3" :key="i" class="bg-white rounded-xl p-6 border border-gray-200 animate-pulse">
+        <div class="h-20 bg-gray-200 rounded mb-4"></div>
+        <div class="space-y-2">
+          <div class="h-4 bg-gray-200 rounded"></div>
+          <div class="h-4 bg-gray-200 rounded w-3/4"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Laboratory Environment Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div v-else class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
       <div
         v-for="lab in laboratories"
         :key="lab.id"
@@ -60,11 +72,11 @@
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center space-x-3">
             <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-              <component :is="lab.icon" class="w-5 h-5 text-primary-600" />
+              <Activity class="w-5 h-5 text-primary-600" />
             </div>
             <div>
               <h3 class="text-lg font-semibold text-gray-900">{{ lab.name }}</h3>
-              <p class="text-sm text-gray-500">{{ lab.location }}</p>
+              <p class="text-sm text-gray-500">{{ lab.location || 'No location' }}</p>
             </div>
           </div>
           <span 
@@ -83,7 +95,9 @@
               <Thermometer class="w-4 h-4 text-orange-600" />
               <span class="text-xs font-medium text-orange-800">Temperature</span>
             </div>
-            <p class="text-lg font-bold text-orange-900">{{ lab.environment.temperature }}°C</p>
+            <p class="text-lg font-bold text-orange-900">
+              {{ lab.environment.temperature != null ? lab.environment.temperature.toFixed(1) : '--' }}°C
+            </p>
             <p class="text-xs text-orange-600">Range: 18-25°C</p>
           </div>
 
@@ -93,7 +107,9 @@
               <Droplets class="w-4 h-4 text-blue-600" />
               <span class="text-xs font-medium text-blue-800">Humidity</span>
             </div>
-            <p class="text-lg font-bold text-blue-900">{{ lab.environment.humidity }}%</p>
+            <p class="text-lg font-bold text-blue-900">
+              {{ lab.environment.humidity != null ? Math.round(lab.environment.humidity) : '--' }}%
+            </p>
             <p class="text-xs text-blue-600">Range: 40-60%</p>
           </div>
 
@@ -103,7 +119,9 @@
               <Wind class="w-4 h-4 text-green-600" />
               <span class="text-xs font-medium text-green-800">Air Quality</span>
             </div>
-            <p class="text-lg font-bold text-green-900">{{ lab.environment.pm25 }} μg/m³</p>
+            <p class="text-lg font-bold text-green-900">
+              {{ lab.environment.pm25 != null ? Math.round(lab.environment.pm25) : '--' }} μg/m³
+            </p>
             <p class="text-xs text-green-600">PM2.5 Level</p>
           </div>
 
@@ -113,7 +131,9 @@
               <Volume2 class="w-4 h-4 text-purple-600" />
               <span class="text-xs font-medium text-purple-800">Noise</span>
             </div>
-            <p class="text-lg font-bold text-purple-900">{{ lab.environment.noise }} dB</p>
+            <p class="text-lg font-bold text-purple-900">
+              {{ lab.environment.noise != null ? Math.round(lab.environment.noise) : '--' }} dB
+            </p>
             <p class="text-xs text-purple-600">Sound Level</p>
           </div>
         </div>
@@ -125,7 +145,9 @@
               <Zap class="w-4 h-4" />
               <span>Power Consumption</span>
             </span>
-            <span class="font-medium text-gray-900">{{ lab.environment.power }} kW</span>
+            <span class="font-medium text-gray-900">
+              {{ lab.environment.power != null ? lab.environment.power.toFixed(1) : '--' }} kW
+            </span>
           </div>
           
           <div class="flex items-center justify-between text-sm">
@@ -133,7 +155,9 @@
               <Gauge class="w-4 h-4" />
               <span>Air Pressure</span>
             </span>
-            <span class="font-medium text-gray-900">{{ lab.environment.pressure }} hPa</span>
+            <span class="font-medium text-gray-900">
+              {{ lab.environment.pressure != null ? lab.environment.pressure.toFixed(1) : '--' }} hPa
+            </span>
           </div>
           
           <div class="flex items-center justify-between text-sm">
@@ -154,11 +178,15 @@
             View History
           </button>
           <button 
+            v-if="canConfigure"
             class="flex-1 bg-gray-100 text-gray-700 py-2 px-3 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
             @click="editLabData(lab.id)"
           >
             Edit
           </button>
+          <span v-else class="flex-1 text-center text-xs text-gray-400 py-2">
+            View Only
+          </span>
         </div>
       </div>
     </div>
@@ -285,12 +313,20 @@
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
-              <tr v-for="record in historyData" :key="record.time" class="hover:bg-gray-50">
-                <td class="py-2 px-3 text-sm text-gray-900">{{ record.time }}</td>
-                <td class="py-2 px-3 text-sm text-gray-900">{{ record.temperature }}°C</td>
-                <td class="py-2 px-3 text-sm text-gray-900">{{ record.humidity }}%</td>
-                <td class="py-2 px-3 text-sm text-gray-900">{{ record.pm25 }} μg/m³</td>
-                <td class="py-2 px-3 text-sm text-gray-900">{{ record.noise }} dB</td>
+              <tr v-for="record in historyData" :key="record.ts" class="hover:bg-gray-50">
+                <td class="py-2 px-3 text-sm text-gray-900">{{ formatTime(record.ts) }}</td>
+                <td class="py-2 px-3 text-sm text-gray-900">
+                  {{ record.temp != null ? record.temp.toFixed(1) : '--' }}°C
+                </td>
+                <td class="py-2 px-3 text-sm text-gray-900">
+                  {{ record.hum != null ? Math.round(record.hum) : '--' }}%
+                </td>
+                <td class="py-2 px-3 text-sm text-gray-900">
+                  {{ record.pm25 != null ? Math.round(record.pm25) : '--' }} μg/m³
+                </td>
+                <td class="py-2 px-3 text-sm text-gray-900">
+                  {{ record.noise != null ? Math.round(record.noise) : '--' }} dB
+                </td>
               </tr>
             </tbody>
           </table>
@@ -309,7 +345,7 @@
         @click.stop
       >
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold text-gray-900">Edit Environmental Data</h3>
+          <h3 class="text-lg font-semibold text-gray-900">Add Environmental Data</h3>
           <button 
             @click="showEditModal = false"
             class="text-gray-500 hover:text-gray-700"
@@ -337,14 +373,17 @@
                 type="number" 
                 step="0.1"
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
               >
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Humidity (%)</label>
               <input 
                 v-model.number="editForm.humidity"
-                type="number" 
+                type="number"
+                step="0.1" 
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
               >
             </div>
           </div>
@@ -354,37 +393,20 @@
               <label class="block text-sm font-medium text-gray-700 mb-1">PM2.5 (μg/m³)</label>
               <input 
                 v-model.number="editForm.pm25"
-                type="number" 
+                type="number"
+                step="0.1" 
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
               >
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Noise (dB)</label>
               <input 
                 v-model.number="editForm.noise"
-                type="number" 
+                type="number"
+                step="0.1" 
                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              >
-            </div>
-          </div>
-          
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Power (kW)</label>
-              <input 
-                v-model.number="editForm.power"
-                type="number" 
-                step="0.1"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
-              >
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Pressure (hPa)</label>
-              <input 
-                v-model.number="editForm.pressure"
-                type="number" 
-                step="0.1"
-                class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                required
               >
             </div>
           </div>
@@ -393,13 +415,15 @@
             <button 
               type="submit"
               class="bg-primary-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-600 transition-colors"
+              :disabled="submitting"
             >
-              Save Changes
+              {{ submitting ? 'Saving...' : 'Save Data' }}
             </button>
             <button 
               type="button"
               class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
               @click="showEditModal = false"
+              :disabled="submitting"
             >
               Cancel
             </button>
@@ -411,7 +435,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
   Thermometer, 
   Droplets, 
@@ -422,24 +447,28 @@ import {
   Clock, 
   Download, 
   AlertTriangle, 
-  TrendingUp, 
   Activity, 
   CheckCircle,
-  Cpu,
-  Smartphone,
-  Cloud,
-  Shield,
   X
 } from 'lucide-vue-next'
+import { api } from '@/api'
+import { useAuthStore } from '@/stores/auth'
 
-// Chart.js global interface
 declare global {
   interface Window {
     Chart: any;
   }
 }
 
-// Reactive data
+const router = useRouter()
+const authStore = useAuthStore()
+
+// Permission-based access control
+const canView = computed(() => authStore.hasPermission('ENVIRONMENT_VIEW'))
+const canConfigure = computed(() => authStore.hasPermission('ENVIRONMENT_CONFIG'))
+
+const loading = ref(true)
+const submitting = ref(false)
 const selectedTimeRange = ref('24h')
 const selectedLab = ref('')
 const selectedMetric = ref('temperature')
@@ -448,11 +477,9 @@ const showEditModal = ref(false)
 const selectedLabData = ref<any>(null)
 const editingLab = ref<any>(null)
 
-// Chart references
 const environmentChart = ref<HTMLCanvasElement | null>(null)
 const historyChart = ref<HTMLCanvasElement | null>(null)
 
-// Chart instances
 let mainChart: any = null
 let detailChart: any = null
 
@@ -460,158 +487,26 @@ const editForm = ref({
   temperature: 0,
   humidity: 0,
   pm25: 0,
-  noise: 0,
-  power: 0,
-  pressure: 0
+  noise: 0
 })
 
-const laboratories = ref([
-  {
-    id: 'ai-lab',
-    name: 'AI Laboratory',
-    location: 'Building A, Floor 3',
-    icon: Cpu,
-    status: 'normal',
-    environment: {
-      temperature: 23.5,
-      humidity: 55,
-      pm25: 12,
-      noise: 38,
-      power: 15.2,
-      pressure: 1013.25
-    },
-    lastUpdated: '2 min ago'
-  },
-  {
-    id: 'iot-lab',
-    name: 'IoT Laboratory',
-    location: 'Building B, Floor 2',
-    icon: Smartphone,
-    status: 'warning',
-    environment: {
-      temperature: 26.8,
-      humidity: 72,
-      pm25: 18,
-      noise: 42,
-      power: 8.7,
-      pressure: 1012.8
-    },
-    lastUpdated: '5 min ago'
-  },
-  {
-    id: 'cloud-lab',
-    name: 'Cloud Computing Lab',
-    location: 'Building C, Floor 1',
-    icon: Cloud,
-    status: 'normal',
-    environment: {
-      temperature: 22.1,
-      humidity: 48,
-      pm25: 8,
-      noise: 35,
-      power: 22.4,
-      pressure: 1014.1
-    },
-    lastUpdated: '1 min ago'
-  },
-  {
-    id: 'security-lab',
-    name: 'Network Security Lab',
-    location: 'Building A, Floor 2',
-    icon: Shield,
-    status: 'critical',
-    environment: {
-      temperature: 28.2,
-      humidity: 35,
-      pm25: 25,
-      noise: 45,
-      power: 12.1,
-      pressure: 1011.5
-    },
-    lastUpdated: '3 min ago'
-  },
-  {
-    id: 'research-lab',
-    name: 'Research Lab',
-    location: 'Building D, Floor 4',
-    icon: Activity,
-    status: 'normal',
-    environment: {
-      temperature: 24.0,
-      humidity: 52,
-      pm25: 10,
-      noise: 40,
-      power: 18.9,
-      pressure: 1013.7
-    },
-    lastUpdated: '4 min ago'
-  }
-])
-
-const activeAlerts = ref([
-  {
-    id: 'alert-1',
-    location: 'IoT Laboratory',
-    message: 'Humidity level exceeds normal range (72%)'
-  },
-  {
-    id: 'alert-2',
-    location: 'Network Security Lab',
-    message: 'Temperature too high (28.2°C)'
-  },
-  {
-    id: 'alert-3',
-    location: 'Network Security Lab',
-    message: 'Humidity below minimum threshold (35%)'
-  }
-])
-
-const environmentStats = computed(() => {
-  const totalSensors = laboratories.value.length * 6; // 6 sensors per lab
-  const activeAlertsCount = activeAlerts.value.length;
-  const avgTemp = laboratories.value.reduce((sum, lab) => sum + lab.environment.temperature, 0) / laboratories.value.length;
-  
-  return {
-    totalSensors,
-    activeAlerts: activeAlertsCount,
-    avgTemperature: Math.round(avgTemp * 10) / 10,
-    uptime: 99.2
-  }
-})
-
-// Generate mock history data
+const laboratories = ref<any[]>([])
+const activeAlerts = ref<any[]>([])
 const historyData = ref<any[]>([])
+const environmentStats = ref({
+  totalSensors: 0,
+  activeAlerts: 0,
+  avgTemperature: 0,
+  uptime: 0
+})
 
-const generateHistoryData = () => {
-  const data = []
-  const now = new Date()
-  
-  for (let i = 23; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 60 * 60 * 1000)
-    data.push({
-      time: time.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      }),
-      temperature: Math.round((22 + Math.random() * 6) * 10) / 10,
-      humidity: Math.round(45 + Math.random() * 30),
-      pm25: Math.round(8 + Math.random() * 20),
-      noise: Math.round(35 + Math.random() * 15)
-    })
-  }
-  
-  historyData.value = data
-}
-
-// Methods
 const getStatusClass = (status: string) => {
   switch (status) {
-    case 'normal':
+    case 'available':
       return 'bg-green-100 text-green-800'
-    case 'warning':
+    case 'maintenance':
       return 'bg-yellow-100 text-yellow-800'
-    case 'critical':
+    case 'full':
       return 'bg-red-100 text-red-800'
     default:
       return 'bg-gray-100 text-gray-800'
@@ -620,69 +515,173 @@ const getStatusClass = (status: string) => {
 
 const getStatusText = (status: string) => {
   switch (status) {
-    case 'normal':
+    case 'available':
       return 'Normal'
-    case 'warning':
-      return 'Warning'
-    case 'critical':
-      return 'Critical'
+    case 'maintenance':
+      return 'Maintenance'
+    case 'full':
+      return 'Full'
     default:
-      return 'Unknown'
+      return status
   }
 }
 
-const viewHistory = (labId: string) => {
-  selectedLabData.value = laboratories.value.find(lab => lab.id === labId)
-  showHistoryModal.value = true
-  
-  nextTick(() => {
-    createHistoryChart()
+const formatTime = (ts: string) => {
+  const date = new Date(ts)
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: false 
   })
 }
 
+const loadEnvironmentData = async () => {
+  try {
+    loading.value = true
+    const response = await api.environment.getAllLabsEnv()
+    if (response.code === 0) {
+      laboratories.value = response.data.map((lab: any) => ({
+        id: String(lab.id),
+        name: lab.name,
+        location: lab.location,
+        status: lab.status,
+        environment: {
+          temperature: lab.environment?.temperature ?? null,
+          humidity: lab.environment?.humidity ?? null,
+          pm25: lab.environment?.pm25 ?? null,
+          noise: lab.environment?.noise ?? null,
+          power: lab.environment?.power ?? null,
+          pressure: lab.environment?.pressure ?? null
+        },
+        lastUpdated: lab.lastUpdated || 'No data'
+      }))
+      console.log('✅ Environment data loaded:', laboratories.value.length, 'labs')
+    }
+  } catch (error) {
+    console.error('❌ Failed to load environment data:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadAlerts = async () => {
+  try {
+    const response = await api.environment.getAlerts()
+    if (response.code === 0) {
+      activeAlerts.value = response.data
+    }
+  } catch (error) {
+    console.error('Failed to load alerts:', error)
+  }
+}
+
+const loadStats = async () => {
+  try {
+    const response = await api.environment.getStats()
+    if (response.code === 0) {
+      environmentStats.value = response.data
+    }
+  } catch (error) {
+    console.error('Failed to load stats:', error)
+  }
+}
+
+const viewHistory = async (labId: string) => {
+  selectedLabData.value = laboratories.value.find(lab => lab.id == labId)
+  showHistoryModal.value = true
+  
+  try {
+    const to = new Date()
+    const from = new Date(to.getTime() - 24 * 60 * 60 * 1000)
+    
+    const response = await api.environment.getSeries(
+      labId,
+      {
+        from: from.toISOString(),
+        to: to.toISOString()
+      }
+    )
+    
+    if (response.code === 0) {
+      historyData.value = response.data
+      nextTick(() => {
+        createHistoryChart()
+      })
+    }
+  } catch (error) {
+    console.error('Failed to load history data:', error)
+  }
+}
+
 const editLabData = (labId: string) => {
-  editingLab.value = laboratories.value.find(lab => lab.id === labId)
+  if (!canConfigure.value) {
+    alert('You do not have permission to configure environment data')
+    return
+  }
+
+  editingLab.value = laboratories.value.find(lab => lab.id == labId)
   if (editingLab.value) {
-    editForm.value = { ...editingLab.value.environment }
+    editForm.value = {
+      temperature: editingLab.value.environment.temperature || 22,
+      humidity: editingLab.value.environment.humidity || 50,
+      pm25: editingLab.value.environment.pm25 || 10,
+      noise: editingLab.value.environment.noise || 40
+    }
     showEditModal.value = true
   }
 }
 
-const saveLabData = () => {
-  if (editingLab.value) {
-    // Update the lab data
-    editingLab.value.environment = { ...editForm.value }
-    editingLab.value.lastUpdated = 'Just now'
+const saveLabData = async () => {
+  if (!editingLab.value) return
+  
+  if (!canConfigure.value) {
+    alert('You do not have permission to save environment data')
+    return
+  }
+  
+  try {
+    submitting.value = true
     
-    // Update status based on values
-    const temp = editForm.value.temperature
-    const humidity = editForm.value.humidity
-    
-    if (temp < 18 || temp > 25 || humidity < 40 || humidity > 60) {
-      if (temp < 15 || temp > 28 || humidity < 30 || humidity > 70) {
-        editingLab.value.status = 'critical'
-      } else {
-        editingLab.value.status = 'warning'
+    const response = await api.environment.addEnvData(
+      editingLab.value.id,
+      {
+        temperature: editForm.value.temperature,
+        humidity: editForm.value.humidity,
+        pm25: editForm.value.pm25,
+        noise: editForm.value.noise
       }
-    } else {
-      editingLab.value.status = 'normal'
-    }
+    )
     
-    showEditModal.value = false
-    updateChart()
+    if (response.code === 0) {
+      showEditModal.value = false
+      await loadEnvironmentData()
+      await loadAlerts()
+      await loadStats()
+      updateChart()
+      console.log('✅ Environment data saved successfully')
+    }
+  } catch (error) {
+    console.error('❌ Failed to save data:', error)
+    alert('Failed to save environmental data')
+  } finally {
+    submitting.value = false
   }
 }
 
 const exportData = () => {
-  // Create CSV content
-  let csvContent = '\uFEFF' // BOM for UTF-8
+  if (!canConfigure.value) {
+    alert('You do not have permission to export data')
+    return
+  }
+
+  let csvContent = '\uFEFF'
   csvContent += 'Laboratory,Temperature,Humidity,PM2.5,Noise,Power,Pressure,Status,Last Updated\n'
   
   laboratories.value.forEach(lab => {
-    csvContent += `"${lab.name}",${lab.environment.temperature},${lab.environment.humidity},${lab.environment.pm25},${lab.environment.noise},${lab.environment.power},${lab.environment.pressure},"${lab.status}","${lab.lastUpdated}"\n`
+    const env = lab.environment
+    csvContent += `"${lab.name}",${env.temperature || ''},${env.humidity || ''},${env.pm25 || ''},${env.noise || ''},${env.power || ''},${env.pressure || ''},"${lab.status}","${lab.lastUpdated}"\n`
   })
   
-  // Download file
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
   const link = document.createElement('a')
   const url = URL.createObjectURL(blob)
@@ -693,9 +692,9 @@ const exportData = () => {
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+  console.log('✅ Data exported successfully')
 }
 
-// Chart functions
 const loadChartJS = async () => {
   if (window.Chart) {
     setTimeout(initializeChart, 500)
@@ -717,7 +716,7 @@ const initializeChart = () => {
   })
 }
 
-const createMainChart = () => {
+const createMainChart = async () => {
   if (!environmentChart.value || !window.Chart) return
   
   if (mainChart) {
@@ -726,68 +725,116 @@ const createMainChart = () => {
   
   const ctx = environmentChart.value.getContext('2d')
   
-  // Generate sample data based on current labs and metric
-  const labels = []
-  const datasets = []
+  const labels: string[] = []
+  const datasets: any[] = []
   
-  // Time labels for last 24 hours
-  const now = new Date()
-  for (let i = 23; i >= 0; i--) {
-    const time = new Date(now.getTime() - i * 60 * 60 * 1000)
-    labels.push(time.getHours().toString().padStart(2, '0') + ':00')
-  }
-  
-  const colors = [
-    'rgba(59, 130, 246, 1)',   // blue
-    'rgba(34, 197, 94, 1)',    // green  
-    'rgba(251, 191, 36, 1)',   // yellow
-    'rgba(239, 68, 68, 1)',    // red
-    'rgba(147, 51, 234, 1)',   // purple
-  ]
-  
-  const fillColors = [
-    'rgba(59, 130, 246, 0.1)',
-    'rgba(34, 197, 94, 0.1)', 
-    'rgba(251, 191, 36, 0.1)',
-    'rgba(239, 68, 68, 0.1)',
-    'rgba(147, 51, 234, 0.1)',
-  ]
-  
-  if (selectedLab.value) {
-    // Show single lab data
-    const lab = laboratories.value.find(l => l.id === selectedLab.value)
-    if (lab) {
-      const baseValue = lab.environment[selectedMetric.value as keyof typeof lab.environment] as number
-      const data = labels.map(() => baseValue + (Math.random() - 0.5) * baseValue * 0.1)
-      
-      datasets.push({
-        label: lab.name,
-        data: data,
-        borderColor: colors[0],
-        backgroundColor: fillColors[0],
-        borderWidth: 2,
-        fill: true,
-        tension: 0.4
-      })
+  try {
+    const to = new Date()
+    let from: Date
+    
+    switch (selectedTimeRange.value) {
+      case '1h':
+        from = new Date(to.getTime() - 60 * 60 * 1000)
+        break
+      case '24h':
+        from = new Date(to.getTime() - 24 * 60 * 60 * 1000)
+        break
+      case '7d':
+        from = new Date(to.getTime() - 7 * 24 * 60 * 60 * 1000)
+        break
+      case '30d':
+        from = new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000)
+        break
+      default:
+        from = new Date(to.getTime() - 24 * 60 * 60 * 1000)
     }
-  } else {
-    // Show all labs
-    laboratories.value.forEach((lab, index) => {
-      if (index < 5) { // Limit to 5 lines for readability
-        const baseValue = lab.environment[selectedMetric.value as keyof typeof lab.environment] as number
-        const data = labels.map(() => baseValue + (Math.random() - 0.5) * baseValue * 0.1)
+    
+    const colors = [
+      'rgba(59, 130, 246, 1)',
+      'rgba(34, 197, 94, 1)',
+      'rgba(251, 191, 36, 1)',
+      'rgba(239, 68, 68, 1)',
+      'rgba(147, 51, 234, 1)',
+    ]
+    
+    const fillColors = [
+      'rgba(59, 130, 246, 0.1)',
+      'rgba(34, 197, 94, 0.1)',
+      'rgba(251, 191, 36, 0.1)',
+      'rgba(239, 68, 68, 0.1)',
+      'rgba(147, 51, 234, 0.1)',
+    ]
+    
+    if (selectedLab.value) {
+      const response = await api.environment.getSeries(
+        selectedLab.value,
+        {
+          from: from.toISOString(),
+          to: to.toISOString()
+        }
+      )
+      
+      if (response.code === 0 && response.data.length > 0) {
+        const lab = laboratories.value.find(l => l.id == selectedLab.value)
+        const data = response.data
+        
+        labels.push(...data.map((d: any) => formatTime(d.ts)))
+        
+        const metricKey = selectedMetric.value === 'temperature' ? 'temp' :
+                         selectedMetric.value === 'humidity' ? 'hum' :
+                         selectedMetric.value === 'pm25' ? 'pm25' : 'noise'
         
         datasets.push({
-          label: lab.name,
-          data: data,
-          borderColor: colors[index],
-          backgroundColor: fillColors[index],
+          label: lab?.name || 'Lab',
+          data: data.map((d: any) => d[metricKey]),
+          borderColor: colors[0],
+          backgroundColor: fillColors[0],
           borderWidth: 2,
-          fill: false,
+          fill: true,
           tension: 0.4
         })
       }
-    })
+    } else {
+      const labsToShow = laboratories.value.slice(0, 5)
+      
+      for (let i = 0; i < labsToShow.length; i++) {
+        const lab = labsToShow[i]
+        
+        try {
+          const response = await api.environment.getSeries(
+            lab.id,
+            {
+              from: from.toISOString(),
+              to: to.toISOString()
+            }
+          )
+          
+          if (response.code === 0 && response.data.length > 0) {
+            if (labels.length === 0) {
+              labels.push(...response.data.map((d: any) => formatTime(d.ts)))
+            }
+            
+            const metricKey = selectedMetric.value === 'temperature' ? 'temp' :
+                             selectedMetric.value === 'humidity' ? 'hum' :
+                             selectedMetric.value === 'pm25' ? 'pm25' : 'noise'
+            
+            datasets.push({
+              label: lab.name,
+              data: response.data.map((d: any) => d[metricKey]),
+              borderColor: colors[i],
+              backgroundColor: fillColors[i],
+              borderWidth: 2,
+              fill: false,
+              tension: 0.4
+            })
+          }
+        } catch (error) {
+          console.error(`Failed to load data for lab ${lab.id}:`, error)
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Failed to create chart:', error)
   }
   
   const metricInfo = {
@@ -802,8 +849,13 @@ const createMainChart = () => {
   mainChart = new window.Chart(ctx, {
     type: 'line',
     data: {
-      labels: labels,
-      datasets: datasets
+      labels: labels.length > 0 ? labels : ['No Data'],
+      datasets: datasets.length > 0 ? datasets : [{
+        label: 'No Data',
+        data: [],
+        borderColor: 'rgba(156, 163, 175, 1)',
+        backgroundColor: 'rgba(156, 163, 175, 0.1)'
+      }]
     },
     options: {
       responsive: true,
@@ -837,7 +889,7 @@ const createMainChart = () => {
 }
 
 const createHistoryChart = () => {
-  if (!historyChart.value || !window.Chart) return
+  if (!historyChart.value || !window.Chart || historyData.value.length === 0) return
   
   if (detailChart) {
     detailChart.destroy()
@@ -848,18 +900,18 @@ const createHistoryChart = () => {
   detailChart = new window.Chart(ctx, {
     type: 'line',
     data: {
-      labels: historyData.value.map(d => d.time),
+      labels: historyData.value.map(d => formatTime(d.ts)),
       datasets: [
         {
           label: 'Temperature (°C)',
-          data: historyData.value.map(d => d.temperature),
+          data: historyData.value.map(d => d.temp),
           borderColor: 'rgba(251, 113, 133, 1)',
           backgroundColor: 'rgba(251, 113, 133, 0.1)',
           yAxisID: 'y'
         },
         {
           label: 'Humidity (%)',
-          data: historyData.value.map(d => d.humidity),
+          data: historyData.value.map(d => d.hum),
           borderColor: 'rgba(59, 130, 246, 1)',
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           yAxisID: 'y1'
@@ -910,34 +962,36 @@ const updateChart = () => {
   }, 100)
 }
 
-onMounted(() => {
-  generateHistoryData()
+onMounted(async () => {
+  console.log('Environment page mounted')
+  console.log('Current user:', authStore.user?.name)
+  console.log('User permissions:', authStore.user?.permissions)
+  console.log('Permission check:', {
+    canView: canView.value,
+    canConfigure: canConfigure.value
+  })
+
+  if (!canView.value) {
+    console.warn('Access denied: User does not have ENVIRONMENT_VIEW permission')
+    router.push('/dashboard')
+    return
+  }
+
+  console.log('Permission check passed: ENVIRONMENT_VIEW')
+
+  await loadEnvironmentData()
+  await loadAlerts()
+  await loadStats()
   loadChartJS()
   
-  // Simulate real-time data updates
-  setInterval(() => {
-    laboratories.value.forEach(lab => {
-      // Slight random variations in environmental data
-      lab.environment.temperature += (Math.random() - 0.5) * 0.2
-      lab.environment.humidity += (Math.random() - 0.5) * 2
-      lab.environment.pm25 += (Math.random() - 0.5) * 1
-      lab.environment.noise += (Math.random() - 0.5) * 2
-      
-      // Round to reasonable precision
-      lab.environment.temperature = Math.round(lab.environment.temperature * 10) / 10
-      lab.environment.humidity = Math.round(lab.environment.humidity)
-      lab.environment.pm25 = Math.round(lab.environment.pm25)
-      lab.environment.noise = Math.round(lab.environment.noise)
-      
-      // Update timestamp
-      lab.lastUpdated = `${Math.floor(Math.random() * 5) + 1} min ago`
-    })
-    
-    // Update chart if it exists
+  setInterval(async () => {
+    await loadEnvironmentData()
+    await loadAlerts()
+    await loadStats()
     if (mainChart) {
       updateChart()
     }
-  }, 30000) // Update every 30 seconds
+  }, 30000)
 })
 </script>
 

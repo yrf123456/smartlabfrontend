@@ -16,7 +16,7 @@
     <!-- Error state -->
     <div v-else-if="error" class="text-center py-20">
       <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <div class="icon icon-labs text-red-400 icon-xl"></div>
+        <AlertCircle class="w-8 h-8 text-red-400" />
       </div>
       <h3 class="text-lg font-medium text-gray-900 mb-2">Laboratory Not Found</h3>
       <p class="text-gray-500 mb-6">{{ error }}</p>
@@ -33,10 +33,10 @@
       <!-- Basic lab info card -->
       <div class="bg-white rounded-2xl border border-gray-200 p-6">
         <div class="flex items-start justify-between">
-          <div>
+          <div class="flex-1">
             <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ lab.name }}</h1>
             <div class="flex items-center text-gray-600 mb-4">
-              <div class="icon icon-key text-gray-400 mr-2"></div>
+              <MapPin class="w-4 h-4 text-gray-400 mr-2" />
               <span>{{ lab.location }}</span>
             </div>
             
@@ -69,25 +69,35 @@
               </div>
             </div>
 
-            <div v-if="lab.desc" class="mb-4">
+            <div v-if="lab.description" class="mb-4">
               <p class="text-sm text-gray-500 mb-2">Description</p>
-              <p class="text-gray-700">{{ lab.desc }}</p>
+              <p class="text-gray-700">{{ lab.description }}</p>
             </div>
 
             <div class="mb-4">
               <p class="text-sm text-gray-500 mb-2">Opening Hours</p>
-              <p class="text-gray-700">{{ lab.openHours }}</p>
+              <p class="text-gray-700">{{ lab.openHours || 'Not specified' }}</p>
             </div>
           </div>
 
+          <!-- Action Buttons -->
           <div class="ml-6 flex flex-col space-y-2">
-            
+            <!-- Only show Book Lab button, remove Edit button from detail page -->
             <button
-              v-if="canEdit"
-              class="border border-gray-300 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors"
-              @click="$router.push(`/labs/${lab.id}/edit`)"
+              v-if="lab.status === 'available'"
+              class="inline-flex items-center space-x-2 bg-primary-500 text-white px-4 py-2 rounded-xl hover:bg-primary-600 transition-colors"
+              @click="handleBooking"
             >
-              Edit Laboratory
+              <Calendar class="w-4 h-4" />
+              <span>Book Lab</span>
+            </button>
+            
+            <!-- Back to list button -->
+            <button
+              class="inline-flex items-center space-x-2 border border-gray-300 text-gray-700 px-4 py-2 rounded-xl hover:bg-gray-50 transition-colors"
+              @click="$router.push('/labs')"
+            >
+              <span>Back to List</span>
             </button>
           </div>
         </div>
@@ -114,21 +124,20 @@
           </div>
         </div>
       </div>
-
-      <!-- Development notice -->
-      
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { api } from '@/api'
 import type { Lab } from '@/types'
+import { MapPin, AlertCircle, Calendar } from 'lucide-vue-next'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const lab = ref<Lab | null>(null)
@@ -137,9 +146,8 @@ const error = ref('')
 
 const labName = computed(() => lab.value?.name)
 
-const canEdit = computed(() => {
-  return authStore.hasRole('SYS_ADMIN') || authStore.hasRole('DEPT_ADMIN')
-})
+// Permission-based access control
+const canView = computed(() => authStore.hasPermission('LAB_VIEW'))
 
 const getStatusClass = (status: Lab['status']) => {
   switch (status) {
@@ -168,8 +176,9 @@ const getStatusText = (status: Lab['status']) => {
 }
 
 const handleBooking = () => {
-  // Navigate to booking page (under development)
-  alert('Booking functionality is under development!')
+  if (lab.value) {
+    router.push(`/bookings?labId=${lab.value.id}`)
+  }
 }
 
 const fetchLab = async () => {
@@ -192,8 +201,18 @@ const fetchLab = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   console.log('🏢 Lab Detail page: Loading lab ID:', route.params.labId)
-  fetchLab()
+  
+  // Check view permission
+  if (!canView.value) {
+    console.warn('❌ Access denied: User does not have LAB_VIEW permission')
+    router.push('/dashboard')
+    return
+  }
+  
+  console.log('✅ Permission check passed: LAB_VIEW')
+  
+  await fetchLab()
 })
 </script>

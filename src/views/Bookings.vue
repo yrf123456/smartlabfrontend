@@ -8,6 +8,7 @@
       </div>
       
       <button 
+        v-if="canCreate"
         class="bg-primary-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-600 transition-colors"
         @click="showCreateModal = true"
       >
@@ -94,81 +95,75 @@
     </div>
 
     <!-- Bookings List -->
-    <div v-else class="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200">
-        <h2 class="text-lg font-semibold text-gray-900">
-          {{ filteredBookings.length }} Booking(s)
-        </h2>
-      </div>
-      
-      <div v-if="filteredBookings.length === 0" class="text-center py-12">
+    <div v-else class="space-y-4">
+      <div v-if="filteredBookings.length === 0" class="bg-white rounded-2xl border border-gray-200 p-12 text-center">
         <Calendar class="w-12 h-12 text-gray-400 mx-auto mb-3" />
         <p class="text-gray-500">No bookings found</p>
       </div>
       
-      <div v-else class="divide-y divide-gray-200">
-        <div
-          v-for="booking in filteredBookings"
-          :key="booking.id"
-          class="p-6 hover:bg-gray-50 transition-colors"
-        >
-          <div class="flex items-center justify-between">
-            <div class="flex items-start space-x-4 flex-1">
-              <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                <TestTube class="w-6 h-6 text-primary-600" />
+      <div
+        v-for="booking in filteredBookings"
+        :key="booking.id"
+        class="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow"
+      >
+        <div class="flex items-start justify-between">
+          <div class="flex items-start space-x-4 flex-1">
+            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <TestTube class="w-6 h-6 text-blue-600" />
+            </div>
+            
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center space-x-3 mb-3">
+                <h3 class="text-lg font-semibold text-gray-900">{{ booking.title }}</h3>
+                <span 
+                  class="px-3 py-1 text-xs font-medium rounded-full"
+                  :class="getStatusClass(booking.status)"
+                >
+                  {{ getStatusText(booking.status) }}
+                </span>
               </div>
               
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center space-x-3 mb-2">
-                  <h3 class="text-lg font-medium text-gray-900">{{ booking.title }}</h3>
-                  <span 
-                    class="px-2 py-1 text-xs font-medium rounded-full"
-                    :class="getStatusClass(booking.status)"
-                  >
-                    {{ getStatusText(booking.status) }}
-                  </span>
+              <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600">
+                <div class="flex items-center space-x-2">
+                  <MapPin class="w-4 h-4 flex-shrink-0" />
+                  <span>{{ getLabName(booking.labId) }}</span>
                 </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
-                  <div class="flex items-center space-x-2">
-                    <MapPin class="w-4 h-4 flex-shrink-0" />
-                    <span>{{ getLabName(booking.labId) }}</span>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <Clock class="w-4 h-4 flex-shrink-0" />
-                    <span>{{ formatDateTime(booking.start) }} - {{ formatTime(booking.end) }}</span>
-                  </div>
-                  <div class="flex items-center space-x-2">
-                    <Users class="w-4 h-4 flex-shrink-0" />
-                    <span>{{ booking.participants }} participant(s)</span>
-                  </div>
+                <div class="flex items-center space-x-2">
+                  <Clock class="w-4 h-4 flex-shrink-0" />
+                  <span>{{ formatDateTime(booking.start) }}</span>
                 </div>
-                
-                <div class="flex items-center space-x-2 mt-2 text-sm text-gray-600">
+                <div class="flex items-center space-x-2">
                   <User class="w-4 h-4 flex-shrink-0" />
                   <span>{{ booking.requester?.name || 'Unknown' }}</span>
                 </div>
-                
-                <p v-if="booking.note" class="text-sm text-gray-500 mt-2">{{ booking.note }}</p>
               </div>
+              
+              <p v-if="booking.note" class="text-sm text-gray-500 mt-2">{{ booking.note }}</p>
             </div>
-            
-            <div class="flex items-center space-x-2 ml-4">
-              <button 
-                v-if="booking.status === 'pending' && canApprove"
-                class="px-3 py-1.5 text-xs font-medium text-green-700 bg-green-100 rounded-lg hover:bg-green-200 transition-colors"
-                @click="handleApprove(booking.id)"
-              >
-                Approve
-              </button>
-              <button 
-                v-if="booking.status === 'pending' && canApprove"
-                class="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200 transition-colors"
-                @click="handleReject(booking.id)"
-              >
-                Reject
-              </button>
-            </div>
+          </div>
+          
+          <!-- Action Buttons - Horizontal Layout -->
+          <div class="flex items-center space-x-2 ml-6 flex-shrink-0">
+            <button 
+              v-if="booking.status === 'pending' && canApprove"
+              class="px-4 py-2 text-sm font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+              @click="handleApprove(booking.id)"
+            >
+              Approve
+            </button>
+            <button 
+              v-if="booking.status === 'pending' && canApprove"
+              class="px-4 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+              @click="handleReject(booking.id)"
+            >
+              Reject
+            </button>
+            <button 
+              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              @click="handleDetail(booking.id)"
+            >
+              Details
+            </button>
           </div>
         </div>
       </div>
@@ -213,6 +208,119 @@
             <p class="text-2xl font-bold text-red-600">{{ bookingStats.rejected }}</p>
           </div>
           <XCircle class="w-8 h-8 text-red-600" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div 
+      v-if="showDetailModal && selectedBookingDetail"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click="showDetailModal = false"
+    >
+      <div 
+        class="bg-white rounded-2xl p-6 w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto"
+        @click.stop
+      >
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-xl font-semibold text-gray-900">Booking Details</h3>
+          <button 
+            class="text-gray-400 hover:text-gray-600 transition-colors"
+            @click="showDetailModal = false"
+          >
+            <XCircle class="w-6 h-6" />
+          </button>
+        </div>
+        
+        <div class="space-y-6">
+          <!-- Status Badge -->
+          <div class="flex items-center justify-center">
+            <span 
+              class="px-4 py-2 text-sm font-medium rounded-full"
+              :class="getStatusClass(selectedBookingDetail.status)"
+            >
+              {{ getStatusText(selectedBookingDetail.status) }}
+            </span>
+          </div>
+          
+          <!-- Basic Info -->
+          <div class="bg-gray-50 rounded-xl p-4 space-y-4">
+            <div>
+              <label class="text-sm font-medium text-gray-500">Title</label>
+              <p class="text-base font-medium text-gray-900 mt-1">{{ selectedBookingDetail.title }}</p>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-500">Laboratory</label>
+              <p class="text-base text-gray-900 mt-1">{{ getLabName(selectedBookingDetail.labId) }}</p>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="text-sm font-medium text-gray-500">Start Time</label>
+                <p class="text-base text-gray-900 mt-1">{{ formatDateTime(selectedBookingDetail.start) }}</p>
+              </div>
+              <div>
+                <label class="text-sm font-medium text-gray-500">End Time</label>
+                <p class="text-base text-gray-900 mt-1">{{ formatDateTime(selectedBookingDetail.end) }}</p>
+              </div>
+            </div>
+            
+            <div>
+              <label class="text-sm font-medium text-gray-500">Participants</label>
+              <p class="text-base text-gray-900 mt-1">{{ selectedBookingDetail.participants }} person(s)</p>
+            </div>
+          </div>
+          
+          <!-- Requester Info -->
+          <div class="bg-blue-50 rounded-xl p-4">
+            <label class="text-sm font-medium text-blue-900 mb-3 block">Requester Information</label>
+            <div class="flex items-center space-x-3">
+              <div class="w-12 h-12 bg-blue-200 rounded-full flex items-center justify-center">
+                <User class="w-6 h-6 text-blue-700" />
+              </div>
+              <div>
+                <p class="text-base font-medium text-gray-900">{{ selectedBookingDetail.requester?.name || 'Unknown' }}</p>
+                <p class="text-sm text-gray-600">ID: {{ selectedBookingDetail.requester?.id || 'N/A' }}</p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Note -->
+          <div v-if="selectedBookingDetail.note">
+            <label class="text-sm font-medium text-gray-500 block mb-2">Note</label>
+            <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+              <p class="text-base text-gray-900">{{ selectedBookingDetail.note }}</p>
+            </div>
+          </div>
+          
+          <!-- Action Buttons in Modal -->
+          <div v-if="selectedBookingDetail.status === 'pending' && canApprove" class="flex items-center space-x-3 pt-4 border-t border-gray-200">
+            <button 
+              class="flex-1 bg-green-500 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-green-600 transition-colors flex items-center justify-center space-x-2"
+              @click="handleApproveFromModal(selectedBookingDetail.id)"
+            >
+              <CheckCircle class="w-5 h-5" />
+              <span>Approve Booking</span>
+            </button>
+            <button 
+              class="flex-1 bg-red-500 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center space-x-2"
+              @click="handleRejectFromModal(selectedBookingDetail.id)"
+            >
+              <XCircle class="w-5 h-5" />
+              <span>Reject Booking</span>
+            </button>
+          </div>
+          
+          <!-- Close Button -->
+          <div class="flex justify-end pt-2">
+            <button 
+              class="bg-gray-100 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+              @click="showDetailModal = false"
+            >
+              Close
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -357,6 +465,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { 
   Calendar, 
   Plus, 
@@ -368,19 +477,25 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
-  TestTube
+  TestTube,
+  Monitor
 } from 'lucide-vue-next'
 import { useBookingStore } from '@/stores/booking'
 import { useLabStore } from '@/stores/lab'
 import { useAuthStore } from '@/stores/auth'
+import { UserRole } from '@/types'
+import type { BookingEvent } from '@/types'
 import dayjs from 'dayjs'
 
+const router = useRouter()
 const bookingStore = useBookingStore()
 const labStore = useLabStore()
 const authStore = useAuthStore()
 
 // Reactive data
 const showCreateModal = ref(false)
+const showDetailModal = ref(false)
+const selectedBookingDetail = ref<BookingEvent | null>(null)
 const selectedStatus = ref('')
 const selectedLabId = ref('')
 const dateFrom = ref('')
@@ -398,20 +513,28 @@ const newBooking = ref({
   note: ''
 })
 
+// Permission-based access control
+const canCreate = computed(() => {
+  const hasPermission = authStore.hasPermission('BOOKING_CREATE')
+  console.log('🔒 BOOKING_CREATE permission:', hasPermission)
+  return hasPermission
+})
+
+const canApprove = computed(() => {
+  const hasPermission = authStore.hasPermission('BOOKING_APPROVE')
+  console.log('🔒 BOOKING_APPROVE permission:', hasPermission)
+  return hasPermission
+})
+
 // Computed properties
 const loading = computed(() => bookingStore.loading)
 const error = computed(() => bookingStore.error)
-const bookings = computed(() => bookingStore.bookings)
-const labs = computed(() => labStore.labs)
+const bookings = computed(() => bookingStore.bookings || [])
+const labs = computed(() => labStore.labs || [])
 
 const availableLabs = computed(() => {
   return labs.value.filter(lab => lab.status === 'available')
 })
-
-const canApprove = computed(() => 
-  authStore.hasRole('SYS_ADMIN') || 
-  authStore.hasRole('DEPT_ADMIN')
-)
 
 const filteredBookings = computed(() => {
   let result = bookings.value
@@ -434,21 +557,25 @@ const bookingStats = computed(() => {
 
 // Methods
 const fetchBookings = async () => {
-  const params: any = {}
-  
-  if (selectedLabId.value) {
-    params.labId = selectedLabId.value
+  try {
+    const params: any = {}
+    
+    if (selectedLabId.value) {
+      params.labId = selectedLabId.value
+    }
+    
+    if (dateFrom.value) {
+      params.from = dayjs(dateFrom.value).startOf('day').toISOString()
+    }
+    
+    if (dateTo.value) {
+      params.to = dayjs(dateTo.value).endOf('day').toISOString()
+    }
+    
+    await bookingStore.fetchBookings(params)
+  } catch (error) {
+    console.error('Failed to fetch bookings:', error)
   }
-  
-  if (dateFrom.value) {
-    params.from = dayjs(dateFrom.value).startOf('day').toISOString()
-  }
-  
-  if (dateTo.value) {
-    params.to = dayjs(dateTo.value).endOf('day').toISOString()
-  }
-  
-  await bookingStore.fetchBookings(params)
 }
 
 const clearFilters = () => {
@@ -498,25 +625,139 @@ const getStatusText = (status: string) => {
   }
 }
 
-const handleApprove = async (id: string) => {
+const handleDetail = async (id: string) => {
   try {
+    console.log('📋 Viewing booking details for ID:', id)
+    
+    // Try to find booking in local data first
+    const localBooking = bookings.value.find(b => b.id === id)
+    
+    if (localBooking) {
+      console.log('✅ Using local booking data')
+      selectedBookingDetail.value = localBooking
+      showDetailModal.value = true
+      return
+    }
+    
+    // If not found locally, fetch from backend
+    console.log('📡 Fetching booking from backend')
+    const booking = await bookingStore.fetchBookingById(id)
+    
+    if (booking) {
+      selectedBookingDetail.value = booking
+      showDetailModal.value = true
+      console.log('✅ Booking details loaded from backend')
+    } else {
+      throw new Error('Booking data is null or undefined')
+    }
+  } catch (error: any) {
+    console.error('❌ Failed to load booking details:', error)
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      url: error.config?.url
+    })
+    
+    // Try to use local data as fallback
+    const fallbackBooking = bookings.value.find(b => b.id === id)
+    if (fallbackBooking) {
+      console.log('⚠️ Using fallback local data')
+      selectedBookingDetail.value = fallbackBooking
+      showDetailModal.value = true
+      return
+    }
+    
+    const message = error.response?.data?.message || 
+                   error.response?.data?.msg || 
+                   error.message || 
+                   'Failed to load booking details'
+    alert(`Failed to load booking details: ${message}`)
+  }
+}
+
+const handleApprove = async (id: string) => {
+  if (!canApprove.value) {
+    alert('You do not have permission to approve bookings')
+    return
+  }
+  
+  try {
+    console.log('✅ Approving booking:', id)
     await bookingStore.approveBooking(id)
     await fetchBookings()
-  } catch (error) {
-    console.error('Failed to approve booking:', error)
+    console.log('✅ Booking approved successfully')
+  } catch (error: any) {
+    console.error('❌ Failed to approve booking:', error)
+    const message = error.response?.data?.message || error.message || 'Failed to approve booking'
+    alert(`Failed to approve booking: ${message}`)
   }
 }
 
 const handleReject = async (id: string) => {
+  if (!canApprove.value) {
+    alert('You do not have permission to reject bookings')
+    return
+  }
+  
   try {
+    console.log('❌ Rejecting booking:', id)
     await bookingStore.rejectBooking(id)
     await fetchBookings()
-  } catch (error) {
-    console.error('Failed to reject booking:', error)
+    console.log('✅ Booking rejected successfully')
+  } catch (error: any) {
+    console.error('❌ Failed to reject booking:', error)
+    const message = error.response?.data?.message || error.message || 'Failed to reject booking'
+    alert(`Failed to reject booking: ${message}`)
+  }
+}
+
+const handleApproveFromModal = async (id: string) => {
+  if (!canApprove.value) {
+    alert('You do not have permission to approve bookings')
+    return
+  }
+  
+  try {
+    console.log('✅ Approving booking from modal:', id)
+    await bookingStore.approveBooking(id)
+    await fetchBookings()
+    showDetailModal.value = false
+    selectedBookingDetail.value = null
+    console.log('✅ Booking approved successfully')
+  } catch (error: any) {
+    console.error('❌ Failed to approve booking:', error)
+    const message = error.response?.data?.message || error.message || 'Failed to approve booking'
+    alert(`Failed to approve booking: ${message}`)
+  }
+}
+
+const handleRejectFromModal = async (id: string) => {
+  if (!canApprove.value) {
+    alert('You do not have permission to reject bookings')
+    return
+  }
+  
+  try {
+    console.log('❌ Rejecting booking from modal:', id)
+    await bookingStore.rejectBooking(id)
+    await fetchBookings()
+    showDetailModal.value = false
+    selectedBookingDetail.value = null
+    console.log('✅ Booking rejected successfully')
+  } catch (error: any) {
+    console.error('❌ Failed to reject booking:', error)
+    const message = error.response?.data?.message || error.message || 'Failed to reject booking'
+    alert(`Failed to reject booking: ${message}`)
   }
 }
 
 const handleCreateBooking = async () => {
+  if (!canCreate.value) {
+    alert('You do not have permission to create bookings')
+    return
+  }
+  
   try {
     submitting.value = true
     
@@ -550,17 +791,36 @@ const handleCreateBooking = async () => {
     
     showCreateModal.value = false
     await fetchBookings()
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to create booking:', error)
+    const message = error.response?.data?.message || error.message || 'Failed to create booking'
+    alert(`Failed to create booking: ${message}`)
   } finally {
     submitting.value = false
   }
 }
 
 onMounted(async () => {
-  // Load labs first
-  await labStore.fetchLabs()
-  // Then load bookings
-  await fetchBookings()
+  console.log('🚀 Bookings page mounted')
+  console.log('👤 Current user:', authStore.user?.name)
+  console.log('🔑 User permissions:', authStore.user?.permissions)
+  console.log('📋 Permission check:', {
+    canCreate: canCreate.value,
+    canApprove: canApprove.value
+  })
+  
+  try {
+    // Load labs first
+    console.log('📡 Loading labs...')
+    await labStore.fetchLabs()
+    console.log('✅ Labs loaded:', labStore.labs.length)
+    
+    // Then load bookings
+    console.log('📡 Loading bookings...')
+    await fetchBookings()
+    console.log('✅ Bookings loaded:', bookingStore.bookings.length)
+  } catch (error) {
+    console.error('❌ Failed to initialize bookings page:', error)
+  }
 })
 </script>

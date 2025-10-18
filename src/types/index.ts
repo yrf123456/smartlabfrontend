@@ -1,47 +1,50 @@
-// Role enums - English only
+// Role enums - English only, compatible with backend
 export enum UserRole {
-  SYSTEM_ADMIN = 'SYSTEM_ADMIN',
+  SYSTEM_ADMIN = 'ADMIN',
   DEPARTMENT_ADMIN = 'DEPARTMENT_ADMIN', 
   TEACHER = 'TEACHER',
   STUDENT = 'STUDENT',
   VISITOR = 'VISITOR'
 }
 
-// Permission enums - English only  
-export enum Permission {
-  // System management permissions
-  SYSTEM_SETTINGS = 'SYSTEM_SETTINGS',
-  USER_MANAGEMENT = 'USER_MANAGEMENT',
-  ROLE_MANAGEMENT = 'ROLE_MANAGEMENT',
+// Permission type - now flexible to accept any string from backend
+export type Permission = string
+
+// Common permission constants for reference (not exhaustive)
+export const CommonPermissions = {
+  // User Management (ADMIN only)
+  USER_MANAGEMENT: 'USER_MANAGEMENT',
   
-  // Lab management permissions
-  LAB_CREATE = 'LAB_CREATE',
-  LAB_EDIT = 'LAB_EDIT',
-  LAB_DELETE = 'LAB_DELETE',
-  LAB_VIEW = 'LAB_VIEW',
+  // Lab
+  LAB_CREATE: 'LAB_CREATE',
+  LAB_EDIT: 'LAB_EDIT',
+  LAB_DELETE: 'LAB_DELETE',
+  LAB_VIEW: 'LAB_VIEW',
   
-  // Booking management permissions
-  BOOKING_CREATE = 'BOOKING_CREATE',
-  BOOKING_APPROVE = 'BOOKING_APPROVE',
-  BOOKING_REJECT = 'BOOKING_REJECT',
-  BOOKING_VIEW = 'BOOKING_VIEW',
+  // Booking
+  BOOKING_CREATE: 'BOOKING_CREATE',
+  BOOKING_APPROVE: 'BOOKING_APPROVE',
+  BOOKING_VIEW: 'BOOKING_VIEW',
   
-  // Equipment management permissions
-  EQUIPMENT_MANAGE = 'EQUIPMENT_MANAGE',
-  EQUIPMENT_VIEW = 'EQUIPMENT_VIEW',
+  // Equipment
+  EQUIPMENT_MANAGE: 'EQUIPMENT_MANAGE',
+  EQUIPMENT_VIEW: 'EQUIPMENT_VIEW',
   
-  // Environment monitoring permissions
-  ENVIRONMENT_CONFIG = 'ENVIRONMENT_CONFIG',
-  ENVIRONMENT_VIEW = 'ENVIRONMENT_VIEW',
+  // Environment
+  ENVIRONMENT_CONFIG: 'ENVIRONMENT_CONFIG',
+  ENVIRONMENT_VIEW: 'ENVIRONMENT_VIEW',
   
-  // Access control permissions
-  ACCESS_MANAGE = 'ACCESS_MANAGE',
-  ACCESS_VIEW = 'ACCESS_VIEW',
+  // Project
+  PROJECT_VIEW: 'PROJECT_VIEW',
+  PROJECT_CREATE: 'PROJECT_CREATE',
+  PROJECT_EDIT: 'PROJECT_EDIT',
+  PROJECT_APPROVE: 'PROJECT_APPROVE',
+  PROJECT_DELETE: 'PROJECT_DELETE',
   
-  // Report permissions
-  REPORT_VIEW = 'REPORT_VIEW',
-  REPORT_EXPORT = 'REPORT_EXPORT'
-}
+  // Reports
+  REPORTS_VIEW: 'REPORTS_VIEW',
+  REPORTS_EXPORT: 'REPORTS_EXPORT'
+} as const
 
 export interface User {
   id: string
@@ -49,15 +52,22 @@ export interface User {
   name: string
   email: string
   avatarUrl: string
-  roles: UserRole[]
-  permissions: Permission[]
+  roles: string[]
+  permissions?: Permission[]
   token?: string
-  status: 'active' | 'disabled'
+  status: 'active' | 'inactive' | 'pending'
+  department?: string
+  lastLogin?: string
 }
 
-// Registration related types
+export interface UserStats {
+  total: number
+  teachers: number
+  students: number
+}
+
 export interface RegisterRequest {
-  username: string  // 添加username字段
+  username: string
   name: string
   email: string
   password: string
@@ -104,6 +114,14 @@ export interface BookingEvent {
   status: 'pending' | 'approved' | 'rejected'
   participants: number
   note?: string
+  bookingType?: 'lab' | 'equipment'
+  equipmentId?: string
+  equipment?: {
+    id: string
+    name: string
+    code: string
+    type: string
+  }
 }
 
 export interface Equipment {
@@ -164,7 +182,6 @@ export interface PaginatedData<T> {
   size: number
 }
 
-// Language related types
 export type LocaleType = 'en'
 
 export interface LocaleOption {
@@ -173,10 +190,131 @@ export interface LocaleOption {
   flag: string
 }
 
-// UI state types
 export interface UiState {
   sidebarOpen: boolean
   theme: 'light' | 'dark'
   locale: LocaleType
   globalLoading: boolean
+}
+
+export interface LatestEnvData {
+  labId: string
+  labName: string
+  temperature: number | null
+  humidity: number | null
+  pm25: number | null
+  noise: number | null
+  timestamp: string
+}
+
+export interface LabEnvData {
+  id: string
+  name: string
+  location: string
+  status: 'available' | 'maintenance' | 'full'
+  environment: {
+    temperature: number | null
+    humidity: number | null
+    pm25: number | null
+    noise: number | null
+    power: number | null
+    pressure: number | null
+  }
+  lastUpdated: string
+}
+
+export interface EnvAlert {
+  id: string
+  location: string
+  message: string
+  metric: string
+  value: number
+  threshold: number
+}
+
+export interface EnvStats {
+  totalSensors: number
+  activeAlerts: number
+  avgTemperature: number
+  uptime: number
+}
+
+export interface EnvThreshold {
+  labId: string | null
+  metric: string
+  minValue: number | null
+  maxValue: number | null
+}
+
+export interface Project {
+  id: string
+  title: string
+  description: string
+  status: 'pending' | 'approved' | 'in_progress' | 'completed' | 'archived' | 'rejected'
+  priority: 'low' | 'medium' | 'high'
+  principalInvestigator: {
+    id: string
+    name: string
+    email: string
+    avatarUrl?: string
+  }
+  laboratory?: string
+  startDate: string
+  endDate: string
+  progress: number
+  teamMembers: string[]
+  objectives?: string
+  resources?: {
+    equipment?: string[]
+    materials?: string[]
+    budget?: number
+  }
+  deliverables?: string[]
+  tags?: string[]
+  phases: {
+    application: boolean
+    design: boolean
+    execution: boolean
+    archive: boolean
+  }
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateProjectRequest {
+  title: string
+  description: string
+  laboratory?: string
+  priority: 'low' | 'medium' | 'high'
+  startDate: string
+  endDate: string
+  teamMembers?: string[]
+  objectives?: string
+  resources?: {
+    equipment?: string[]
+    materials?: string[]
+    budget?: number
+  }
+  deliverables?: string[]
+  tags?: string[]
+}
+
+export interface UpdateProjectRequest {
+  title?: string
+  description?: string
+  laboratory?: string
+  priority?: 'low' | 'medium' | 'high'
+  startDate?: string
+  endDate?: string
+  progress?: number
+  teamMembers?: string[]
+  objectives?: string
+  resources?: {
+    equipment?: string[]
+    materials?: string[]
+    budget?: number
+  }
+  deliverables?: string[]
+  tags?: string[]
+  status?: 'pending' | 'approved' | 'in_progress' | 'completed' | 'archived' | 'rejected'
 }
